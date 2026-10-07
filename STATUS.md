@@ -48,3 +48,14 @@ new session starts from the last commit and this file, not from scratch.
   a difference of 1 to 3 pages out of 54, i.e. noise. Control: with an unrelated page the model is right 1 of 18.
 - Conclusion: on single-fact docs questions there is no ranking headroom. The win must be claimed elsewhere
   (fewer pages for the same answer, stop rule, duplicates) or on harder tasks.
+
+## Superseded-news experiment, Step A (2026-10-07): no headroom
+- `experiments/superseded.py`, results in `experiments/superseded_results.md`. Cases 1, 2, 3, 4, 5, 9, 11 from
+  `superseded-news-cases.md`. Query "<company> news", task "sales outreach angle based on their latest news".
+- Keenable returned the NEW story (or later news) in the top results for every case. The OLD story appeared
+  once in 70 results (Natron, rank 10). The exact URLs from the cases file were never returned.
+- Naive agent by keyword: 5 CORRECT, 1 WRONG (Humane), 1 OTHER (Figure). Read by hand, neither is a real miss:
+  the Humane answer describes the Ai Pin's failure without naming HP; the Figure answer uses 2026 news and
+  does not mention OpenAI. So 0 of 7 pitch the old event as current. Decision rule: no headroom, nothing built.
+- Publish dates: Keenable's API returned `published_at` for 44 of 70 results; with page text, 57 of 70 had a date.
+- Untested: event-specific queries (the agent searches for the old event by name), or reversals only days old.
