@@ -46,7 +46,8 @@
   .sim { text-align:center; color:#c9c5bb; font-size:14px; margin-top:6px; letter-spacing:.05em; text-transform:uppercase; }
   #end { position:fixed; inset:0; background:rgba(28,27,25,.72); display:none; align-items:center; justify-content:center; }
   #end.show { display:flex; }
-  #end div { background:var(--card); border-radius:16px; padding:32px 40px; max-width:1200px; }
+  #end div { position:relative; background:var(--card); border-radius:16px; padding:32px 40px; max-width:1200px; }
+  #end .close { position:absolute; top:10px; right:16px; border:0; background:none; font-size:32px; line-height:1; cursor:pointer; color:var(--muted); }
   #end h2 { margin:0 0 6px; font-size:28px; } #end p { margin:10px 0; font-size:20px; } #end .small { color:var(--muted); font-size:17px; }
 </style>
 </head>
@@ -163,11 +164,14 @@ async function play() {
     await sleep(800);
   }
   await sleep(2500 + D.pace * 1000);
-  $("end").firstElementChild.innerHTML = "<h2>Across the held-out tasks, not just this example</h2>" +
+  $("end").firstElementChild.innerHTML = '<button class="close" aria-label="Close" onclick="closeEnd()">&times;</button>' + "<h2>Across the held-out tasks, not just this example</h2>" +
     D.end_card.map(r => `<p><b>${esc(r.eval)}: ${r.passed ? "PASS" : "FAIL"}</b><br>${esc(r.numbers)}<br><span class="small">${esc(r.notes)}</span></p>`).join("") +
     '<p class="small">Prices are simulated. Numbers come from the latest eval report.</p>';
   $("end").classList.add("show");
 }
+function closeEnd() { $("end").classList.remove("show"); }
+$("end").addEventListener("click", e => { if (e.target.id === "end") closeEnd(); });
+addEventListener("keydown", e => { if (e.key === "Escape") closeEnd(); });
 $("start").onclick = play;
 addEventListener("keydown", e => { if (e.code === "Space" && $("start")) { e.preventDefault(); play(); } });
 </script>
