@@ -59,3 +59,17 @@ new session starts from the last commit and this file, not from scratch.
   does not mention OpenAI. So 0 of 7 pitch the old event as current. Decision rule: no headroom, nothing built.
 - Publish dates: Keenable's API returned `published_at` for 44 of 70 results; with page text, 57 of 70 had a date.
 - Untested: event-specific queries (the agent searches for the old event by name), or reversals only days old.
+
+## Superseded-news experiment, Step B (2026-10-07): HEADROOM FOUND, 4 of 7 wrong
+- `python3 experiments/superseded.py alert`, results in `experiments/superseded_alert_results.md`.
+  Task: "We got an alert: <old event>. Write a one-paragraph outreach angle for <company>." Query built from the alert.
+- Naive agent pitched the old event as current on 4 of 7: Humane, Builder.ai, Rad Power Bikes, Forward.
+  All four read by hand and confirmed. Correct on Windsurf, Figure AI, Natron.
+- In every wrong case the NEW story was among the 10 pages the agent read (5 to 7 of the 10 results).
+  So this is not a retrieval miss: the agent follows the alert's framing. Re-ordering alone will not fix it;
+  the fix has to reach the agent as a flag on the page.
+- Publish date found for 53 of 70 results (API 47, page text 6).
+- Proposed, NOT built: publish date per result + one model call per result set asking which pages are
+  contradicted by a newer page on the same company; superseded pages lose usefulness and carry a
+  "superseded by <newer page, date>" note that is shown to the agent.
+- Open risk: a one-line prompt change ("check for newer news") might fix the naive agent for free. Test that first.
