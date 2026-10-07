@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Usefulness search for agents</title>
+<style>
+  :root { --bg:#f6f5f1; --card:#fff; --ink:#1c1b19; --muted:#6f6b63; --line:#e3e0d8; --accent:#1f6f5c;
+          --accent-soft:#e3f1ec; --warn:#b4541a; --warn-soft:#fbeadd; --bad:#a3312b; --dim:#b9b5ac; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink); font:18px/1.4 -apple-system, "Segoe UI", Helvetica, Arial, sans-serif; }
+  .wrap { max-width:1840px; margin:0 auto; padding:20px 32px 150px; }
+  header { display:flex; gap:16px; align-items:stretch; }
+  .search, .budget { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:12px 18px; }
+  .search { flex:1; font-size:21px; } .budget { width:230px; text-align:center; }
+  .label { font-size:13px; letter-spacing:.06em; text-transform:uppercase; color:var(--muted); display:block; }
+  .budget b { font-size:26px; }
+  #beat { margin:16px 0 12px; display:flex; align-items:center; gap:16px; min-height:44px; }
+  #beat h1 { font-size:26px; margin:0; } #beat p { margin:0; color:var(--muted); }
+  button { font:inherit; padding:8px 22px; border-radius:10px; border:0; background:var(--accent); color:#fff; cursor:pointer; }
+  .cols { display:grid; grid-template-columns:1fr 1fr; gap:24px; }
+  .col h2 { font-size:20px; margin:0 0 8px; } .col h2 small { font-weight:400; color:var(--muted); font-size:16px; }
+  .rows { position:relative; height:500px; }
+  .row { position:absolute; left:0; right:0; height:44px; display:flex; align-items:center; gap:12px; padding:0 14px;
+         background:var(--card); border:1px solid var(--line); border-radius:9px; opacity:0;
+         transition:top .7s ease, opacity .4s, background .3s, border-color .3s; }
+  .row.show { opacity:1; } .row.on { background:var(--accent-soft); border-color:var(--accent); }
+  .row.off { opacity:.38; }
+  .rank { width:34px; color:var(--muted); font-variant-numeric:tabular-nums; }
+  .title { flex:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .num { font-variant-numeric:tabular-nums; width:74px; text-align:right; }
+  .tag { font-size:13px; padding:2px 8px; border-radius:20px; background:var(--line); color:var(--muted); white-space:nowrap; }
+  .tag.dup { background:var(--warn-soft); color:var(--warn); } .tag.cited { background:var(--accent); color:#fff; }
+  .tag.unused { background:var(--warn-soft); color:var(--warn); }
+  .delta { width:150px; text-align:right; font-variant-numeric:tabular-nums; font-size:16px; }
+  .up { color:var(--accent); } .down { color:var(--bad); }
+  .head { display:flex; gap:12px; padding:0 14px 4px; font-size:13px; color:var(--muted); text-transform:uppercase; letter-spacing:.05em; }
+  .head .title { flex:1; }
+  .answer { margin-top:10px; background:var(--card); border:1px solid var(--line); border-radius:12px; padding:12px 16px;
+            min-height:92px; opacity:0; transition:opacity .5s; } .answer.show { opacity:1; }
+  .verdict { font-weight:600; } .verdict.pass { color:var(--accent); } .verdict.fail { color:var(--bad); }
+  footer { position:fixed; left:0; right:0; bottom:0; background:var(--ink); color:#fff; padding:12px 32px; }
+  .strip { max-width:1840px; margin:0 auto; display:grid; grid-template-columns:1fr 1fr; gap:24px; }
+  .counters { display:flex; gap:36px; align-items:baseline; } .counters b { font-size:30px; font-variant-numeric:tabular-nums; }
+  .counters span { color:#c9c5bb; font-size:14px; display:block; }
+  .sim { text-align:center; color:#c9c5bb; font-size:14px; margin-top:6px; letter-spacing:.05em; text-transform:uppercase; }
+  #end { position:fixed; inset:0; background:rgba(28,27,25,.72); display:none; align-items:center; justify-content:center; }
+  #end.show { display:flex; }
+  #end div { background:var(--card); border-radius:16px; padding:32px 40px; max-width:1200px; }
+  #end h2 { margin:0 0 6px; font-size:28px; } #end p { margin:10px 0; font-size:20px; } #end .small { color:var(--muted); font-size:17px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="search"><span class="label">Agent's query</span><span id="query"></span></div>
+    <div class="budget"><span class="label">Budget (simulated)</span><b id="budget"></b></div>
+  </header>
+  <div id="beat"><button id="start">Run demo</button><h1></h1><p></p></div>
+  <div class="cols">
+    <div class="col"><h2>Normal search <small>reads the top 10</small></h2>
+      <div class="head"><span class="rank">Rank</span><span class="title">Page</span></div>
+      <div class="rows" id="left"></div><div class="answer" id="ansL"></div></div>
+    <div class="col"><h2>Usefulness search <small>buys by usefulness per cent</small></h2>
+      <div class="head"><span class="rank">Rank</span><span class="title">Page</span><span class="num">Useful</span><span class="num">Price</span><span class="delta"></span></div>
+      <div class="rows" id="right"></div><div class="answer" id="ansR"></div></div>
+  </div>
+</div>
+<footer>
+  <div class="strip">
+    <div class="counters"><div><b id="pL">0</b><span>pages read</span></div><div><b id="mL">0.00c</b><span>spent</span></div><div><b id="tL">-</b><span>tokens used</span></div></div>
+    <div class="counters"><div><b id="pR">0</b><span>pages read</span></div><div><b id="mR">0.00c</b><span>spent</span></div><div><b id="tR">-</b><span>tokens used</span></div></div>
+  </div>
+  <div class="sim">Prices simulated. No real money moves.</div>
+</footer>
+<div id="end"><div></div></div>
+<script>
+const D = /*DATA*/null;
+const $ = id => document.getElementById(id);
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const cents = x => x.toFixed(2) + "c";
+const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const ROW = 50;
+const byRank = [...D.naive.results].sort((a, b) => a.keenable_rank - b.keenable_rank);
+const byUse = [...D.buyer.results].sort((a, b) => b.usefulness - a.usefulness);
+const rows = {L: {}, R: {}};
+
+$("query").textContent = D.task.question;
+$("budget").textContent = cents(D.budget_cents);
+
+function build(side, host, withScore) {
+  byRank.forEach((r, i) => {
+    const el = document.createElement("div");
+    el.className = "row"; el.style.top = i * ROW + "px";
+    el.innerHTML = `<span class="rank">#${r.keenable_rank}</span><span class="title">${esc(r.title)}</span>` +
+      (withScore ? `<span class="tags"></span><span class="num use"></span><span class="num price"></span><span class="delta"></span>` : "");
+    $(host).appendChild(el); rows[side][r.url] = el;
+  });
+}
+build("L", "left", false); build("R", "right", true);
+
+async function beat(n, title, text) {
+  if (n > 1) await sleep(D.pace * 1000);
+  document.querySelector("#beat h1").textContent = n + ". " + title;
+  document.querySelector("#beat p").textContent = text;
+  await sleep(900);
+}
+function tag(url, cls, text) { rows.R[url].querySelector(".tags").insertAdjacentHTML("beforeend", `<span class="tag ${cls}">${text}</span> `); }
+
+async function play() {
+  $("start").remove();
+  // Beat 1: the problem
+  await beat(1, "The problem", "Both sides get the same 10 pages. Normal search reads every one.");
+  for (const r of byRank) { rows.L[r.url].classList.add("show"); rows.R[r.url].classList.add("show"); await sleep(70); }
+  let spent = 0, n = 0;
+  for (const p of D.naive.purchases) {
+    rows.L[p.url].classList.add("on"); spent += p.price_cents; n++;
+    $("pL").textContent = n; $("mL").textContent = cents(spent); await sleep(330);
+  }
+  // Beat 2: usefulness and price
+  await beat(2, "Usefulness and price", "The same pages, re-ordered by how likely each is to be used for this task.");
+  byUse.forEach((r, i) => {
+    const el = rows.R[r.url]; el.style.top = i * ROW + "px";
+    el.querySelector(".use").textContent = r.usefulness.toFixed(2);
+    el.querySelector(".price").textContent = cents(r.price_cents);
+    if (r.is_new) tag(r.url, "", "new");
+  });
+  await sleep(1500);
+  // Beat 3: the agent buys
+  await beat(3, "The agent buys", "Best usefulness per cent first, until the budget or its stopping rule ends it.");
+  spent = 0; n = 0;
+  const listed = Object.fromEntries(D.buyer.results.map(r => [r.url, r.price_cents]));
+  for (const p of D.buyer.purchases) {
+    for (const o of p.offers_before) {           // prices at this moment: duplicates of bought pages got cheaper
+      const el = rows.R[o.url];
+      if (o.price_cents < listed[o.url] - 1e-9 && !el.dataset.dup) {
+        el.dataset.dup = 1; tag(o.url, "dup", "duplicate");
+        el.querySelector(".use").textContent = o.usefulness.toFixed(2);
+        el.querySelector(".price").textContent = cents(o.price_cents);
+      }
+    }
+    await sleep(500);
+    rows.R[p.url].classList.add("on"); spent += p.price_cents; n++;
+    $("pR").textContent = n; $("mR").textContent = cents(spent); await sleep(700);
+  }
+  const bought = new Set(D.buyer.fetched);
+  D.buyer.results.forEach(r => { if (!bought.has(r.url)) rows.R[r.url].classList.add("off"); });
+  await sleep(700);
+  for (const [id, log, ok, t] of [["ansL", D.naive, D.naive_correct, "tL"], ["ansR", D.buyer, D.buyer_correct, "tR"]]) {
+    $(id).innerHTML = `<span class="verdict ${ok ? "pass" : "fail"}">${ok ? "PASS" : "FAIL"}</span> ` +
+      `<span class="label" style="display:inline"> correctness check</span><br>${esc(log.answer)}`;
+    $(id).classList.add("show"); $(t).textContent = log.tokens.total.toLocaleString();
+  }
+  await sleep(1500);
+  // Beat 4: the loop
+  await beat(4, "The loop", "Pages the agent cited move up. Pages it bought but did not use move down.");
+  const cited = new Set(D.buyer.citations);
+  for (const url of D.buyer.fetched) {
+    const c = D.score_changes[url], up = c.after > c.before;
+    tag(url, cited.has(url) ? "cited" : "unused", cited.has(url) ? "cited" : "not used");
+    rows.R[url].querySelector(".delta").innerHTML =
+      `<span class="${up ? "up" : "down"}">${c.before.toFixed(2)} → ${c.after.toFixed(2)} ${up ? "▲" : "▼"}</span>`;
+    await sleep(800);
+  }
+  await sleep(2500 + D.pace * 1000);
+  $("end").firstElementChild.innerHTML = "<h2>Across the held-out tasks, not just this example</h2>" +
+    D.end_card.map(r => `<p><b>${esc(r.eval)}: ${r.passed ? "PASS" : "FAIL"}</b><br>${esc(r.numbers)}<br><span class="small">${esc(r.notes)}</span></p>`).join("") +
+    '<p class="small">Prices are simulated. Numbers come from the latest eval report.</p>';
+  $("end").classList.add("show");
+}
+$("start").onclick = play;
+addEventListener("keydown", e => { if (e.code === "Space" && $("start")) { e.preventDefault(); play(); } });
+</script>
+</body>
+</html>

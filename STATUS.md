@@ -20,8 +20,16 @@ new session starts from the last commit and this file, not from scratch.
 - Grading now treats a hyphen between words as a space; t03 and t11 accept singular forms
   ("five minute", "30 second"). Both approved in spirit by Usman on 2026-10-06.
 
+## Step 6 done: demo screen
+- `python3 demo.py [--pace N]` builds `demo.html` (git-ignored) from cache only and opens it; Space or the
+  button starts it. All four beats, row markers and the end card work. About 26s unpaced.
+- Demo query t16 (Next.js 15 force-static), the only training task that met the rule; see `demo_candidates.md`.
+  History for the demo excludes t16 itself, so all 10 pages show "new".
+- In this example all 3 bought pages were cited, so Beat 4 shows only upward score changes.
+
 ## Next, in order
-- Step 6: demo screen (Beats 1, 3, 4, then 2). Step 7: video run with `--pace`.
+- Step 7: Usman records the video (`python3 demo.py --pace 8` or similar).
+- README with the one-paragraph thesis, then push to a public repo (only when Usman says so).
 
 ## Waiting on Usman
 - Verify the 24 tasks. t04 draft fact looks stale: pages say the current GitHub API

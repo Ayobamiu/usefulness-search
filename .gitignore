@@ -4,3 +4,5 @@ __pycache__/
 .DS_Store
 cache/
 .eval_last_run
+demo.html
+.claude/
