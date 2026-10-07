@@ -100,7 +100,8 @@ Evals: 12 of 14 pass. The original 10 all pass.
 - F4 FAIL: stale answers (keyword check) ours 24/24 vs naive 21/24 (8 held-out cases x 3 runs).
   Tokens per query: naive 13,804; ours 4,010 reading + 31,488 scoring. NET tokens saved including scoring: -21,694.
   NET cost saved including scoring: 15.73c (driven by simulated page prices). Second agent reusing scores: +9,794 tokens.
-- Docs held-out with scoring counted: naive 18,829 tokens; ours 7,364 reading + 18,031 scoring = 25,395. Net -6,566.
+- Docs held-out with scoring counted: naive 18,829 tokens; ours 7,364 reading + 37,782 scoring = 45,146. Net -26,317.
+  Cost with scoring: naive 27.54c, ours 9.67c.
 
 Why it fails (tuning cases only):
 - Detection is noisy: gpt-4o-mini in one call misses the old pages on Humane, Builder.ai, Forward and sometimes
