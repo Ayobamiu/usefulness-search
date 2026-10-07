@@ -1,62 +1,62 @@
 [
  {
   "eval": "E1 score and price on every result",
-  "passed": false,
-  "numbers": "no numbers",
-  "notes": "not implemented: naive agent (step 3)"
+  "passed": true,
+  "numbers": "240/240 results valid",
+  "notes": "all 24 tasks"
  },
  {
   "eval": "E2 usefulness depends on the task",
-  "passed": false,
-  "numbers": "no numbers",
-  "notes": "not implemented: naive agent (step 3)"
+  "passed": true,
+  "numbers": "6/6 pairs; (A, B) scores [(0.674, 0.2), (0.658, 0.222), (0.657, 0.243), (0.741, 0.2), (0.519, 0.283), (0.722, 0.311)]",
+  "notes": "trained history"
  },
  {
   "eval": "E3 usage log is honest",
-  "passed": false,
-  "numbers": "no numbers",
-  "notes": "not implemented: naive agent (step 3)"
+  "passed": true,
+  "numbers": "54/54 runs cite only fetched pages",
+  "notes": "train + held-out, both agents"
  },
  {
   "eval": "E4 loop learns in the right direction",
-  "passed": false,
-  "numbers": "no numbers",
-  "notes": "not implemented: naive agent (step 3)"
+  "passed": true,
+  "numbers": "180/180 pages moved the right way (100%)",
+  "notes": "training tasks only"
  },
  {
   "eval": "E5 prediction beats plain relevance (KEY)",
   "passed": false,
-  "numbers": "no numbers",
-  "notes": "not implemented: naive agent (step 3)"
+  "numbers": "precision@3: ours 0.556 vs Keenable raw 0.833; per task (ours vs raw): t03 0.67 vs 1.00, t07 0.33 vs 1.00, t11 0.67 vs 0.67, t15 0.67 vs 1.00, t19 0.33 vs 0.67, t23 0.67 vs 0.67",
+  "notes": "n=6 held-out tasks x 3 runs (small sample); labels = naive agent citations"
  },
  {
   "eval": "E6 cold start is not a blank score",
   "passed": false,
-  "numbers": "no numbers",
-  "notes": "not implemented: search layer (step 4)"
+  "numbers": "17/18 result sets have score range >= 0.05 (min range 0.023); E2 unseen 6/6",
+  "notes": "empty history, training queries"
  },
  {
   "eval": "E7 duplicates lose value",
   "passed": false,
-  "numbers": "no numbers",
-  "notes": "not implemented: scorer (step 4)"
+  "numbers": "1/3 planted cases dropped; ['score 0.78->0.78, price 3.25->3.25', 'score 0.78->0.78, price 3.24->3.24', 'score 0.71->0.46, price 3.00->2.10']",
+  "notes": ""
  },
  {
   "eval": "E8 price follows usefulness",
-  "passed": false,
-  "numbers": "no numbers",
-  "notes": "not implemented: naive agent (step 3)"
+  "passed": true,
+  "numbers": "24/24 result sets monotonic",
+  "notes": "all 24 tasks"
  },
  {
   "eval": "E9 budget is respected",
-  "passed": false,
-  "numbers": "no numbers",
-  "notes": "not implemented: naive agent (step 3)"
+  "passed": true,
+  "numbers": "18/18 runs within 10c budget and bought best usefulness-per-cent first",
+  "notes": "n=6 held-out tasks x 3 runs (small sample)"
  },
  {
   "eval": "END-TO-END ours vs naive",
-  "passed": false,
-  "numbers": "no numbers",
-  "notes": "not implemented: naive agent (step 3)"
+  "passed": true,
+  "numbers": "correct: ours 100% vs naive 100% (gap 0pp); spend per task: ours 9.05c vs naive 29.65c (69% less, SIMULATED); tokens per task: ours 5634 vs naive 18852",
+  "notes": "n=6 held-out tasks x 3 runs (small sample)"
  }
 ]

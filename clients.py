@@ -7,6 +7,7 @@ import hashlib
 import json
 import os
 import pathlib
+import time
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -48,13 +49,21 @@ def _http(method, url, headers, body=None):
     data = json.dumps(body).encode() if body is not None else None
     req = urllib.request.Request(url, data=data, method=method,
                                  headers={"Content-Type": "application/json", **headers})
-    try:
-        with urllib.request.urlopen(req, timeout=120) as resp:
-            return json.loads(resp.read())
-    except urllib.error.HTTPError as e:
-        # Never echo auth errors: their bodies can contain part of the key.
-        detail = "" if e.code in (401, 403) else e.read().decode(errors="replace")[:300]
-        raise RuntimeError(f"{method} {url.split('?')[0]} failed: HTTP {e.code} {detail}") from None
+    for attempt in range(4):
+        try:
+            with urllib.request.urlopen(req, timeout=120) as resp:
+                return json.loads(resp.read())
+        except urllib.error.HTTPError as e:
+            if e.code in (429, 500, 502, 503, 504) and attempt < 3:
+                time.sleep(2 ** attempt)
+                continue
+            # Never echo auth errors: their bodies can contain part of the key.
+            detail = "" if e.code in (401, 403) else e.read().decode(errors="replace")[:300]
+            raise RuntimeError(f"{method} {url.split('?')[0]} failed: HTTP {e.code} {detail}") from None
+        except OSError:  # dropped connection, TLS hiccup, timeout
+            if attempt == 3:
+                raise
+            time.sleep(2 ** attempt)
 
 
 # ---- Keenable ---------------------------------------------------------------

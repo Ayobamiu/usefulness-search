@@ -17,11 +17,11 @@
    "id": "t02",
    "split": "train",
    "status": "UNVERIFIED",
-   "question": "Which HTTP header makes a Stripe API POST request safe to retry without performing it twice?",
+   "question": "For how long does Stripe keep an idempotency key before it can be pruned and reused as a new request?",
    "ground_truth": {
     "type": "expected_fact",
     "any_of": [
-     "Idempotency-Key"
+     "24 hours"
     ]
    }
   },
@@ -29,11 +29,13 @@
    "id": "t03",
    "split": "heldout",
    "status": "UNVERIFIED",
-   "question": "Which HTTP header carries the signature Stripe sends with a webhook event?",
+   "question": "What is the default timestamp tolerance that Stripe's official libraries apply when verifying a webhook signature?",
    "ground_truth": {
     "type": "expected_fact",
     "any_of": [
-     "Stripe-Signature"
+     "5 minutes",
+     "five minutes",
+     "300 seconds"
     ]
    }
   },
@@ -41,11 +43,11 @@
    "id": "t04",
    "split": "train",
    "status": "UNVERIFIED",
-   "question": "What is the maximum value of per_page for most list endpoints in the GitHub REST API?",
+   "question": "Which date value should be sent in the X-GitHub-Api-Version header to pin the current GitHub REST API version?",
    "ground_truth": {
     "type": "expected_fact",
     "any_of": [
-     "100"
+     "2022-11-28"
     ]
    }
   },
@@ -53,11 +55,11 @@
    "id": "t05",
    "split": "train",
    "status": "UNVERIFIED",
-   "question": "Which GitHub REST API response header tells you how many requests you have left in the current rate limit window?",
+   "question": "How many requests per hour does the GitHub REST API allow for unauthenticated requests under the primary rate limit?",
    "ground_truth": {
     "type": "expected_fact",
     "any_of": [
-     "x-ratelimit-remaining"
+     "60"
     ]
    }
   },
@@ -65,11 +67,11 @@
    "id": "t06",
    "split": "train",
    "status": "UNVERIFIED",
-   "question": "Which exception does the Python requests library raise when you call raise_for_status() on a 4xx or 5xx response?",
+   "question": "In which Python version was the tomllib module added to the standard library?",
    "ground_truth": {
     "type": "expected_fact",
     "any_of": [
-     "HTTPError"
+     "3.11"
     ]
    }
   },
@@ -77,12 +79,11 @@
    "id": "t07",
    "split": "heldout",
    "status": "UNVERIFIED",
-   "question": "Which asyncio function runs several awaitables concurrently and returns their results as a list in order?",
+   "question": "Which asyncio class, added in Python 3.11, is an async context manager that runs a group of tasks and cancels the rest if one fails?",
    "ground_truth": {
     "type": "expected_fact",
     "any_of": [
-     "asyncio.gather",
-     "gather("
+     "TaskGroup"
     ]
    }
   },
@@ -90,11 +91,11 @@
    "id": "t08",
    "split": "train",
    "status": "UNVERIFIED",
-   "question": "Which argument to Python's json.dumps pretty-prints the output with a given number of spaces?",
+   "question": "In which Python version was itertools.batched added?",
    "ground_truth": {
     "type": "expected_fact",
     "any_of": [
-     "indent"
+     "3.12"
     ]
    }
   },
@@ -102,11 +103,11 @@
    "id": "t09",
    "split": "train",
    "status": "UNVERIFIED",
-   "question": "Which clause in a PostgreSQL INSERT statement performs an upsert?",
+   "question": "Which major PostgreSQL version first added the SQL MERGE command?",
    "ground_truth": {
     "type": "expected_fact",
     "any_of": [
-     "ON CONFLICT"
+     "15"
     ]
    }
   },
@@ -114,11 +115,11 @@
    "id": "t10",
    "split": "train",
    "status": "UNVERIFIED",
-   "question": "Which SQLite PRAGMA turns on foreign key constraint enforcement?",
+   "question": "Which SQLite release first supported the RETURNING clause on INSERT, UPDATE and DELETE?",
    "ground_truth": {
     "type": "expected_fact",
     "any_of": [
-     "foreign_keys"
+     "3.35"
     ]
    }
   },
@@ -126,11 +127,12 @@
    "id": "t11",
    "split": "heldout",
    "status": "UNVERIFIED",
-   "question": "Which Dockerfile instruction tells Docker how to test that a container is still working?",
+   "question": "What is the default interval between checks for a Dockerfile HEALTHCHECK instruction?",
    "ground_truth": {
     "type": "expected_fact",
     "any_of": [
-     "HEALTHCHECK"
+     "30s",
+     "30 seconds"
     ]
    }
   },
@@ -138,11 +140,11 @@
    "id": "t12",
    "split": "train",
    "status": "UNVERIFIED",
-   "question": "Which docker run flag automatically removes the container when it exits?",
+   "question": "Which RUN flag in a Dockerfile keeps a package manager's download directory between builds without adding it to the image layer?",
    "ground_truth": {
     "type": "expected_fact",
     "any_of": [
-     "--rm"
+     "--mount=type=cache"
     ]
    }
   },
@@ -150,11 +152,11 @@
    "id": "t13",
    "split": "train",
    "status": "UNVERIFIED",
-   "question": "Which git reset mode undoes the last commit but keeps its changes staged in the index?",
+   "question": "Which Git version introduced the git switch and git restore commands?",
    "ground_truth": {
     "type": "expected_fact",
     "any_of": [
-     "--soft"
+     "2.23"
     ]
    }
   },
@@ -162,11 +164,11 @@
    "id": "t14",
    "split": "train",
    "status": "UNVERIFIED",
-   "question": "Which kubectl command watches the progress of a Deployment rollout until it completes?",
+   "question": "What is the default value of terminationGracePeriodSeconds for a Kubernetes Pod?",
    "ground_truth": {
     "type": "expected_fact",
     "any_of": [
-     "kubectl rollout status"
+     "30"
     ]
    }
   },
@@ -174,11 +176,11 @@
    "id": "t15",
    "split": "heldout",
    "status": "UNVERIFIED",
-   "question": "Which React hook returns a memoized callback function that only changes when its dependencies change?",
+   "question": "Which hook did React 19 introduce to replace useFormState for updating state from a form action?",
    "ground_truth": {
     "type": "expected_fact",
     "any_of": [
-     "useCallback"
+     "useActionState"
     ]
    }
   },
@@ -186,12 +188,11 @@
    "id": "t16",
    "split": "train",
    "status": "UNVERIFIED",
-   "question": "In the Next.js App Router, what must the file that defines a Route Handler be named?",
+   "question": "In Next.js 15, GET Route Handlers are no longer cached by default. Which value of the dynamic route segment config option opts a GET handler back into caching?",
    "ground_truth": {
     "type": "expected_fact",
     "any_of": [
-     "route.ts",
-     "route.js"
+     "force-static"
     ]
    }
   },
@@ -199,11 +200,11 @@
    "id": "t17",
    "split": "train",
    "status": "UNVERIFIED",
-   "question": "Which function in the Node.js crypto module generates a random version 4 UUID?",
+   "question": "Which Node.js command-line flag, added in v20.6.0, loads environment variables from a file without the dotenv package?",
    "ground_truth": {
     "type": "expected_fact",
     "any_of": [
-     "randomUUID"
+     "--env-file"
     ]
    }
   },
@@ -211,11 +212,11 @@
    "id": "t18",
    "split": "train",
    "status": "UNVERIFIED",
-   "question": "Which FastAPI function do you use to declare extra validation such as max_length for a query string parameter?",
+   "question": "Which FastAPI app parameter replaces the deprecated on_event startup and shutdown handlers?",
    "ground_truth": {
     "type": "expected_fact",
     "any_of": [
-     "Query("
+     "lifespan"
     ]
    }
   },
@@ -223,11 +224,11 @@
    "id": "t19",
    "split": "heldout",
    "status": "UNVERIFIED",
-   "question": "Which pandas function loads a Parquet file into a DataFrame?",
+   "question": "Which read_csv argument, added in pandas 2.0, makes the returned DataFrame use PyArrow-backed or nullable dtypes?",
    "ground_truth": {
     "type": "expected_fact",
     "any_of": [
-     "read_parquet"
+     "dtype_backend"
     ]
    }
   },
@@ -235,11 +236,11 @@
    "id": "t20",
    "split": "train",
    "status": "UNVERIFIED",
-   "question": "Which parameter of the OpenAI Chat Completions API makes the model return a JSON object?",
+   "question": "Which response_format type makes the OpenAI Chat Completions API guarantee output that matches a JSON Schema you supply (Structured Outputs)?",
    "ground_truth": {
     "type": "expected_fact",
     "any_of": [
-     "response_format"
+     "json_schema"
     ]
    }
   },
@@ -247,11 +248,11 @@
    "id": "t21",
    "split": "train",
    "status": "UNVERIFIED",
-   "question": "Which Redis command atomically increments the integer stored at a key by one?",
+   "question": "Which Redis command, added in 6.2.0, returns the value of a key and deletes the key in one atomic step?",
    "ground_truth": {
     "type": "expected_fact",
     "any_of": [
-     "INCR"
+     "GETDEL"
     ]
    }
   },
@@ -259,12 +260,11 @@
    "id": "t22",
    "split": "train",
    "status": "UNVERIFIED",
-   "question": "Which built-in TypeScript utility type makes every property of a type optional?",
+   "question": "Which operator, added in TypeScript 4.9, checks that an expression matches a type without changing the expression's inferred type?",
    "ground_truth": {
     "type": "expected_fact",
     "any_of": [
-     "Partial<",
-     "Partial"
+     "satisfies"
     ]
    }
   },
@@ -272,11 +272,11 @@
    "id": "t23",
    "split": "heldout",
    "status": "UNVERIFIED",
-   "question": "Which cargo subcommand adds a dependency to a Rust project's Cargo.toml from the command line?",
+   "question": "In which Rust release did cargo add become a built-in cargo subcommand?",
    "ground_truth": {
     "type": "expected_fact",
     "any_of": [
-     "cargo add"
+     "1.62"
     ]
    }
   },
@@ -284,12 +284,11 @@
    "id": "t24",
    "split": "train",
    "status": "UNVERIFIED",
-   "question": "Which AWS CLI command copies only new and changed files between a local directory and an S3 bucket?",
+   "question": "Which flag of aws s3 sync removes files from the destination that no longer exist in the source?",
    "ground_truth": {
     "type": "expected_fact",
     "any_of": [
-     "aws s3 sync",
-     "s3 sync"
+     "--delete"
     ]
    }
   }
