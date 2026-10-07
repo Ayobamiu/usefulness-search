@@ -1,0 +1,297 @@
+{
+ "_note": "Drafted by the coding agent. Every task stays UNVERIFIED until Usman sets status to VERIFIED. The split is fixed: do not change it.",
+ "tasks": [
+  {
+   "id": "t01",
+   "split": "train",
+   "status": "UNVERIFIED",
+   "question": "How do I paginate results in the Stripe API? Which parameter fetches the next page of a list?",
+   "ground_truth": {
+    "type": "expected_fact",
+    "any_of": [
+     "starting_after"
+    ]
+   }
+  },
+  {
+   "id": "t02",
+   "split": "train",
+   "status": "UNVERIFIED",
+   "question": "Which HTTP header makes a Stripe API POST request safe to retry without performing it twice?",
+   "ground_truth": {
+    "type": "expected_fact",
+    "any_of": [
+     "Idempotency-Key"
+    ]
+   }
+  },
+  {
+   "id": "t03",
+   "split": "heldout",
+   "status": "UNVERIFIED",
+   "question": "Which HTTP header carries the signature Stripe sends with a webhook event?",
+   "ground_truth": {
+    "type": "expected_fact",
+    "any_of": [
+     "Stripe-Signature"
+    ]
+   }
+  },
+  {
+   "id": "t04",
+   "split": "train",
+   "status": "UNVERIFIED",
+   "question": "What is the maximum value of per_page for most list endpoints in the GitHub REST API?",
+   "ground_truth": {
+    "type": "expected_fact",
+    "any_of": [
+     "100"
+    ]
+   }
+  },
+  {
+   "id": "t05",
+   "split": "train",
+   "status": "UNVERIFIED",
+   "question": "Which GitHub REST API response header tells you how many requests you have left in the current rate limit window?",
+   "ground_truth": {
+    "type": "expected_fact",
+    "any_of": [
+     "x-ratelimit-remaining"
+    ]
+   }
+  },
+  {
+   "id": "t06",
+   "split": "train",
+   "status": "UNVERIFIED",
+   "question": "Which exception does the Python requests library raise when you call raise_for_status() on a 4xx or 5xx response?",
+   "ground_truth": {
+    "type": "expected_fact",
+    "any_of": [
+     "HTTPError"
+    ]
+   }
+  },
+  {
+   "id": "t07",
+   "split": "heldout",
+   "status": "UNVERIFIED",
+   "question": "Which asyncio function runs several awaitables concurrently and returns their results as a list in order?",
+   "ground_truth": {
+    "type": "expected_fact",
+    "any_of": [
+     "asyncio.gather",
+     "gather("
+    ]
+   }
+  },
+  {
+   "id": "t08",
+   "split": "train",
+   "status": "UNVERIFIED",
+   "question": "Which argument to Python's json.dumps pretty-prints the output with a given number of spaces?",
+   "ground_truth": {
+    "type": "expected_fact",
+    "any_of": [
+     "indent"
+    ]
+   }
+  },
+  {
+   "id": "t09",
+   "split": "train",
+   "status": "UNVERIFIED",
+   "question": "Which clause in a PostgreSQL INSERT statement performs an upsert?",
+   "ground_truth": {
+    "type": "expected_fact",
+    "any_of": [
+     "ON CONFLICT"
+    ]
+   }
+  },
+  {
+   "id": "t10",
+   "split": "train",
+   "status": "UNVERIFIED",
+   "question": "Which SQLite PRAGMA turns on foreign key constraint enforcement?",
+   "ground_truth": {
+    "type": "expected_fact",
+    "any_of": [
+     "foreign_keys"
+    ]
+   }
+  },
+  {
+   "id": "t11",
+   "split": "heldout",
+   "status": "UNVERIFIED",
+   "question": "Which Dockerfile instruction tells Docker how to test that a container is still working?",
+   "ground_truth": {
+    "type": "expected_fact",
+    "any_of": [
+     "HEALTHCHECK"
+    ]
+   }
+  },
+  {
+   "id": "t12",
+   "split": "train",
+   "status": "UNVERIFIED",
+   "question": "Which docker run flag automatically removes the container when it exits?",
+   "ground_truth": {
+    "type": "expected_fact",
+    "any_of": [
+     "--rm"
+    ]
+   }
+  },
+  {
+   "id": "t13",
+   "split": "train",
+   "status": "UNVERIFIED",
+   "question": "Which git reset mode undoes the last commit but keeps its changes staged in the index?",
+   "ground_truth": {
+    "type": "expected_fact",
+    "any_of": [
+     "--soft"
+    ]
+   }
+  },
+  {
+   "id": "t14",
+   "split": "train",
+   "status": "UNVERIFIED",
+   "question": "Which kubectl command watches the progress of a Deployment rollout until it completes?",
+   "ground_truth": {
+    "type": "expected_fact",
+    "any_of": [
+     "kubectl rollout status"
+    ]
+   }
+  },
+  {
+   "id": "t15",
+   "split": "heldout",
+   "status": "UNVERIFIED",
+   "question": "Which React hook returns a memoized callback function that only changes when its dependencies change?",
+   "ground_truth": {
+    "type": "expected_fact",
+    "any_of": [
+     "useCallback"
+    ]
+   }
+  },
+  {
+   "id": "t16",
+   "split": "train",
+   "status": "UNVERIFIED",
+   "question": "In the Next.js App Router, what must the file that defines a Route Handler be named?",
+   "ground_truth": {
+    "type": "expected_fact",
+    "any_of": [
+     "route.ts",
+     "route.js"
+    ]
+   }
+  },
+  {
+   "id": "t17",
+   "split": "train",
+   "status": "UNVERIFIED",
+   "question": "Which function in the Node.js crypto module generates a random version 4 UUID?",
+   "ground_truth": {
+    "type": "expected_fact",
+    "any_of": [
+     "randomUUID"
+    ]
+   }
+  },
+  {
+   "id": "t18",
+   "split": "train",
+   "status": "UNVERIFIED",
+   "question": "Which FastAPI function do you use to declare extra validation such as max_length for a query string parameter?",
+   "ground_truth": {
+    "type": "expected_fact",
+    "any_of": [
+     "Query("
+    ]
+   }
+  },
+  {
+   "id": "t19",
+   "split": "heldout",
+   "status": "UNVERIFIED",
+   "question": "Which pandas function loads a Parquet file into a DataFrame?",
+   "ground_truth": {
+    "type": "expected_fact",
+    "any_of": [
+     "read_parquet"
+    ]
+   }
+  },
+  {
+   "id": "t20",
+   "split": "train",
+   "status": "UNVERIFIED",
+   "question": "Which parameter of the OpenAI Chat Completions API makes the model return a JSON object?",
+   "ground_truth": {
+    "type": "expected_fact",
+    "any_of": [
+     "response_format"
+    ]
+   }
+  },
+  {
+   "id": "t21",
+   "split": "train",
+   "status": "UNVERIFIED",
+   "question": "Which Redis command atomically increments the integer stored at a key by one?",
+   "ground_truth": {
+    "type": "expected_fact",
+    "any_of": [
+     "INCR"
+    ]
+   }
+  },
+  {
+   "id": "t22",
+   "split": "train",
+   "status": "UNVERIFIED",
+   "question": "Which built-in TypeScript utility type makes every property of a type optional?",
+   "ground_truth": {
+    "type": "expected_fact",
+    "any_of": [
+     "Partial<",
+     "Partial"
+    ]
+   }
+  },
+  {
+   "id": "t23",
+   "split": "heldout",
+   "status": "UNVERIFIED",
+   "question": "Which cargo subcommand adds a dependency to a Rust project's Cargo.toml from the command line?",
+   "ground_truth": {
+    "type": "expected_fact",
+    "any_of": [
+     "cargo add"
+    ]
+   }
+  },
+  {
+   "id": "t24",
+   "split": "train",
+   "status": "UNVERIFIED",
+   "question": "Which AWS CLI command copies only new and changed files between a local directory and an S3 bucket?",
+   "ground_truth": {
+    "type": "expected_fact",
+    "any_of": [
+     "aws s3 sync",
+     "s3 sync"
+    ]
+   }
+  }
+ ]
+}

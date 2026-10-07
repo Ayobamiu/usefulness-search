@@ -1,0 +1,62 @@
+[
+ {
+  "eval": "E1 score and price on every result",
+  "passed": false,
+  "numbers": "no numbers",
+  "notes": "not implemented: naive agent (step 3)"
+ },
+ {
+  "eval": "E2 usefulness depends on the task",
+  "passed": false,
+  "numbers": "no numbers",
+  "notes": "not implemented: naive agent (step 3)"
+ },
+ {
+  "eval": "E3 usage log is honest",
+  "passed": false,
+  "numbers": "no numbers",
+  "notes": "not implemented: naive agent (step 3)"
+ },
+ {
+  "eval": "E4 loop learns in the right direction",
+  "passed": false,
+  "numbers": "no numbers",
+  "notes": "not implemented: naive agent (step 3)"
+ },
+ {
+  "eval": "E5 prediction beats plain relevance (KEY)",
+  "passed": false,
+  "numbers": "no numbers",
+  "notes": "not implemented: naive agent (step 3)"
+ },
+ {
+  "eval": "E6 cold start is not a blank score",
+  "passed": false,
+  "numbers": "no numbers",
+  "notes": "not implemented: search layer (step 4)"
+ },
+ {
+  "eval": "E7 duplicates lose value",
+  "passed": false,
+  "numbers": "no numbers",
+  "notes": "not implemented: scorer (step 4)"
+ },
+ {
+  "eval": "E8 price follows usefulness",
+  "passed": false,
+  "numbers": "no numbers",
+  "notes": "not implemented: naive agent (step 3)"
+ },
+ {
+  "eval": "E9 budget is respected",
+  "passed": false,
+  "numbers": "no numbers",
+  "notes": "not implemented: naive agent (step 3)"
+ },
+ {
+  "eval": "END-TO-END ours vs naive",
+  "passed": false,
+  "numbers": "no numbers",
+  "notes": "not implemented: naive agent (step 3)"
+ }
+]

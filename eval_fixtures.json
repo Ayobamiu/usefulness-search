@@ -1,0 +1,64 @@
+{
+  "_note": "Planted pages for E2, E6 and E7. Synthetic test fixtures, not task ground truth. Each E2 page clearly answers query_a and not query_b, on the same domain, so domain reputation cannot separate them.",
+  "e2_pairs": [
+    {
+      "page": {"url": "https://docs.stripe.com/planted/pagination", "title": "How pagination works",
+               "snippet": "List endpoints return a page of objects and a has_more flag. To get the next page, pass the id of the last object as starting_after. Use ending_before to page backwards. limit sets the page size."},
+      "query_a": "How do I paginate results in the Stripe API?",
+      "query_b": "How do I verify a Stripe webhook signature?"
+    },
+    {
+      "page": {"url": "https://docs.github.com/planted/rate-limits", "title": "Rate limits for the REST API",
+               "snippet": "Every response includes x-ratelimit-limit, x-ratelimit-remaining and x-ratelimit-reset headers. When x-ratelimit-remaining reaches 0, wait until the time in x-ratelimit-reset before retrying."},
+      "query_a": "How do I check how many GitHub API requests I have left before being rate limited?",
+      "query_b": "How do I create a pull request with the GitHub REST API?"
+    },
+    {
+      "page": {"url": "https://www.postgresql.org/docs/planted/insert", "title": "INSERT",
+               "snippet": "ON CONFLICT DO UPDATE updates the existing row that conflicts with the row proposed for insertion. The SET clause may reference the proposed row through the special excluded table."},
+      "query_a": "How do I do an upsert in PostgreSQL?",
+      "query_b": "How do I create a partial index in PostgreSQL?"
+    },
+    {
+      "page": {"url": "https://docs.python.org/planted/asyncio-task", "title": "Coroutines and Tasks",
+               "snippet": "asyncio.gather(*aws) runs awaitable objects concurrently. If all complete successfully the result is a list of returned values in the order of the awaitables passed in."},
+      "query_a": "How do I run several coroutines concurrently in Python and collect all their results?",
+      "query_b": "How do I read a file line by line in Python?"
+    },
+    {
+      "page": {"url": "https://docs.docker.com/planted/healthcheck", "title": "Dockerfile reference: HEALTHCHECK",
+               "snippet": "HEALTHCHECK [OPTIONS] CMD command tells Docker how to test a container to check that it is still working. Options are --interval, --timeout, --start-period and --retries."},
+      "query_a": "How do I make Docker detect that my container has stopped responding?",
+      "query_b": "How do I copy files from a build stage in a multi-stage Dockerfile?"
+    },
+    {
+      "page": {"url": "https://react.dev/planted/useCallback", "title": "useCallback",
+               "snippet": "useCallback(fn, dependencies) lets you cache a function definition between re-renders. React returns the same function again as long as the dependencies have not changed."},
+      "query_a": "How do I stop a callback prop from changing on every render in React?",
+      "query_b": "How do I fetch data on the server in a React Server Component?"
+    }
+  ],
+  "e7_duplicates": [
+    {
+      "query": "How do I paginate results in the Stripe API?",
+      "page_a": {"url": "https://docs.stripe.com/planted/pagination", "title": "How pagination works",
+                 "snippet": "To get the next page of a list, pass the id of the last object you received as starting_after. has_more tells you whether more objects exist."},
+      "page_b": {"url": "https://example-blog.dev/planted/stripe-pagination", "title": "Paging through Stripe lists",
+                 "snippet": "Stripe uses cursor pagination: send starting_after set to the last object's id to fetch the following page, and keep going while has_more is true."}
+    },
+    {
+      "query": "How do I do an upsert in PostgreSQL?",
+      "page_a": {"url": "https://www.postgresql.org/docs/planted/insert", "title": "INSERT",
+                 "snippet": "Use INSERT ... ON CONFLICT (column) DO UPDATE SET ... to update the existing row instead of raising a unique violation."},
+      "page_b": {"url": "https://example-blog.dev/planted/postgres-upsert", "title": "Postgres upsert explained",
+                 "snippet": "An upsert in Postgres is written INSERT ... ON CONFLICT (col) DO UPDATE SET, which updates the row that already exists rather than failing on the unique constraint."}
+    },
+    {
+      "query": "How do I make Docker detect that my container has stopped responding?",
+      "page_a": {"url": "https://docs.docker.com/planted/healthcheck", "title": "HEALTHCHECK",
+                 "snippet": "Add a HEALTHCHECK CMD instruction to the Dockerfile. Docker runs the command on an interval and marks the container unhealthy after the configured retries."},
+      "page_b": {"url": "https://example-blog.dev/planted/docker-healthcheck", "title": "Docker health checks",
+                 "snippet": "Put HEALTHCHECK CMD in your Dockerfile; Docker executes it periodically and flags the container as unhealthy once it fails the set number of retries."}
+    }
+  ]
+}

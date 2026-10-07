@@ -1,0 +1,18 @@
+{
+  "_note": "PLACEHOLDERS from the spec. Usman confirms these before the final run. Do not edit without asking him.",
+  "confirmed_by_usman": false,
+  "e1_min_fraction_valid": 1.0,
+  "e2_min_pairs_correct": 5,
+  "e3_min_fraction_honest_runs": 1.0,
+  "e4_min_fraction_right_direction": 0.9,
+  "e5_precision_at_k": 3,
+  "e5_ours_must_beat_keenable": true,
+  "e6_min_score_range_per_result_set": 0.05,
+  "e6_min_pairs_correct_unseen": 5,
+  "e7_min_fraction_cases_dropped": 1.0,
+  "e8_min_fraction_monotonic_sets": 1.0,
+  "e9_min_fraction_runs_within_budget": 1.0,
+  "e2e_max_correctness_gap_pp": 10,
+  "e2e_min_spend_reduction": 0.4,
+  "e2e_ours_must_use_fewer_tokens": true
+}

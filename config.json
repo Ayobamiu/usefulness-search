@@ -1,0 +1,9 @@
+{
+  "chat_model": "gpt-4o-mini",
+  "embedding_model": "text-embedding-3-small",
+  "keenable_mode": "pro",
+  "top_k": 10,
+  "page_max_chars": 8000,
+  "budget_cents": 10,
+  "heldout_runs": 3
+}
