@@ -7,6 +7,7 @@ here without asking Usman. A failing eval is reported as failed.
 """
 import functools
 import json
+import re
 import pathlib
 import statistics
 import subprocess
@@ -25,7 +26,7 @@ TRAIN = [t for t in TASKS if t["split"] == "train"]
 HELDOUT = [t for t in TASKS if t["split"] == "heldout"]
 RUNS = CONFIG["heldout_runs"]
 N = f"n={len(HELDOUT)} held-out tasks x {RUNS} runs (small sample)"
-EVAL_FILES = ["run_evals.py", "grading.py", "eval_thresholds.json", "eval_fixtures.json", "tasks.json"]
+EVAL_FILES = ["run_evals.py", "grading.py", "eval_thresholds.json", "eval_fixtures.json", "tasks.json", "alert_cases.json"]
 
 
 # ---- shared runs (each computed once; held-out tasks never touch the history) ----
@@ -220,6 +221,111 @@ def e2e_demo_claim():
             f"correct {k['correct']:.0%}, spend {k['spent']:.2f}c, tokens {k['tokens']:.0f}", N)
 
 
+# ---- freshness evals (alert-driven sales cases, alert_cases.json) ----
+
+ALERTS = json.loads((ROOT / "alert_cases.json").read_text())
+A_HELDOUT = [c for c in ALERTS["cases"] if c["split"] == "heldout"]
+A_CONTROL = [c for c in ALERTS["cases"] if c["split"] == "control"]
+NA = f"n={len(A_HELDOUT)} held-out alert cases"
+
+
+def alert_task(case):
+    return {"id": case["id"], "kind": "alert", "query": case["query"],
+            "question": ALERTS["task"].format(alert=case["alert"], name=case["name"])}
+
+
+@functools.cache
+def alert_results(case_id):
+    if not hasattr(usefulness, "W_SUPERSEDED"):
+        raise NotImplementedError("freshness check")
+    case = next(c for c in ALERTS["cases"] if c["id"] == case_id)
+    return usefulness.search(case["query"], usefulness.empty_history())
+
+
+def matches(pattern, page):
+    return bool(re.search(pattern, f"{page['title']} {page['snippet']}".lower()))
+
+
+def is_stale(case, answer):
+    """Keyword check: the answer pitches the old event and does not reflect the newer one."""
+    answer = answer.lower()
+    return bool(re.search(case["old"], answer)) and not re.search(case["new"], answer)
+
+
+def f1_catches_superseded():
+    caught, eligible, flagged_pages = 0, 0, 0
+    for case in A_HELDOUT:
+        results = alert_results(case["id"])
+        by_url = {r["url"]: r for r in results}
+        old = [r for r in results if matches(case["old"], r) and not matches(case["new"], r)]
+        if not old or not any(matches(case["new"], r) for r in results):
+            continue                      # Keenable did not return both stories: nothing to catch
+        eligible += 1
+        flagged = [r for r in old if r["superseded_by"]]
+        flagged_pages += len(flagged)
+        caught += any(matches(case["new"], by_url[r["superseded_by"]["url"]]) for r in flagged)
+    frac = caught / eligible if eligible else 0
+    return (eligible > 0 and frac >= T["f1_min_fraction_eligible_cases_caught"],
+            f"caught {caught} of {eligible} eligible cases ({flagged_pages} old-story pages flagged)",
+            f"{NA}; eligible = Keenable returned both an old-story and a new-story page (keyword match)")
+
+
+def f2_no_false_alarms():
+    alarms, pages, total = 0, 0, 0
+    for case in A_CONTROL:
+        flagged = [r for r in alert_results(case["id"]) if r["superseded_by"]]
+        total += len(alert_results(case["id"]))
+        pages += len(flagged)
+        alarms += bool(flagged)
+    return (alarms <= T["f2_max_control_cases_with_false_alarm"],
+            f"{alarms} of {len(A_CONTROL)} control cases have a false alarm ({pages} of {total} pages flagged)",
+            f"n={len(A_CONTROL)} control cases, drafts UNVERIFIED")
+
+
+def f3_flag_lowers_price():
+    cheaper = total = 0
+    for case in ALERTS["cases"]:
+        if case["split"] == "control":
+            continue
+        for r in alert_results(case["id"]):
+            if r["superseded_by"]:
+                unflagged = usefulness.score(case["query"], {**r, "superseded_by": None}, usefulness.empty_history())
+                total += 1
+                cheaper += r["price_cents"] < usefulness.price_cents(unflagged)
+    frac = cheaper / total if total else 0
+    return (total > 0 and frac >= T["f3_min_fraction_flagged_pages_cheaper"],
+            f"{cheaper}/{total} flagged pages are cheaper than the same page without the flag", "tuning + held-out alert cases")
+
+
+def f4_alert_end_to_end():
+    if not hasattr(agents, "totals"):
+        raise NotImplementedError("scoring cost accounting")
+    sums = {"naive": [], "buyer": []}
+    stale = {"naive": 0, "buyer": 0}
+    for case in A_HELDOUT:
+        for run in range(RUNS):
+            for agent in sums:
+                fn = agents.run_naive if agent == "naive" else agents.run_buyer
+                args = (alert_task(case), usefulness.empty_history()) + ((CONFIG["budget_cents"],) if agent == "buyer" else ())
+                log = fn(*args, run=run)
+                stale[agent] += is_stale(case, log["answer"])
+                sums[agent].append({**agents.totals(log), "pages": len(log["fetched"])})
+    mean = lambda agent, key: statistics.mean(x[key] for x in sums[agent])
+    runs = len(sums["naive"])
+    net_tokens = mean("naive", "total_tokens") - mean("buyer", "total_tokens")
+    net_cents = mean("naive", "total_cents") - mean("buyer", "total_cents")
+    reuse_tokens = mean("naive", "total_tokens") - mean("buyer", "reading_tokens")
+    return (stale["buyer"] < stale["naive"],
+            f"answers pitching the old event as current (keyword check): ours {stale['buyer']}/{runs} vs naive {stale['naive']}/{runs}; "
+            f"pages read: ours {mean('buyer', 'pages'):.1f} vs naive {mean('naive', 'pages'):.1f}; "
+            f"tokens per query: naive {mean('naive', 'total_tokens'):.0f}, ours {mean('buyer', 'total_tokens'):.0f} "
+            f"(reading {mean('buyer', 'reading_tokens'):.0f} + scoring {mean('buyer', 'scoring_tokens'):.0f}); "
+            f"NET tokens saved INCLUDING scoring {net_tokens:.0f}; NET cost saved INCLUDING scoring {net_cents:.2f}c "
+            f"(pages SIMULATED + model tokens at configured prices: naive {mean('naive', 'total_cents'):.2f}c, ours {mean('buyer', 'total_cents'):.2f}c). "
+            f"IF A SECOND AGENT REUSES CACHED SCORES (scoring paid once): net tokens saved {reuse_tokens:.0f}",
+            f"{NA} x {RUNS} runs (small sample); keyword verdicts need Usman's hand read")
+
+
 EVALS = [
     ("E1 score and price on every result", e1_score_and_price),
     ("E2 usefulness depends on the task", e2_task_dependent),
@@ -231,6 +337,10 @@ EVALS = [
     ("E8 price follows usefulness", e8_price_follows_usefulness),
     ("E9 budget is respected", e9_budget),
     ("END-TO-END ours vs naive", e2e_demo_claim),
+    ("F1 catches superseded pages", f1_catches_superseded),
+    ("F2 no false alarms on controls", f2_no_false_alarms),
+    ("F3 a flagged page costs less", f3_flag_lowers_price),
+    ("F4 END-TO-END alert cases, ours vs naive", f4_alert_end_to_end),
 ]
 
 
@@ -264,6 +374,7 @@ def main():
         rows.append({"eval": name, "passed": bool(passed), "numbers": numbers, "notes": notes})
 
     unverified = [t["id"] for t in TASKS if t["status"] != "VERIFIED"]
+    unverified_controls = [c["id"] for c in A_CONTROL if c["status"] != "VERIFIED"]
     env_ignored = git("check-ignore", ".env") == ".env"
     out = ["# Eval report", "",
            "**Prices are simulated.** No real money moves anywhere in this demo.", "",
@@ -273,6 +384,7 @@ def main():
     out += ["", f"Passed {sum(r['passed'] for r in rows)} of {len(rows)}.", "",
             f"Thresholds confirmed by Usman: {'yes' if T['confirmed_by_usman'] else 'NO (placeholders)'}", "",
             f"UNVERIFIED tasks ({len(unverified)} of {len(TASKS)}): {', '.join(unverified) or 'none'}", "",
+            f"UNVERIFIED control cases ({len(unverified_controls)} of {len(A_CONTROL)}): {', '.join(unverified_controls) or 'none'}", "",
             "Changes to eval code, thresholds, fixtures or tasks since the last run:"]
     out += [f"- {line}" for line in eval_changes()]
     out += ["", f".env ignored by git: {'yes' if env_ignored else 'NO - FIX BEFORE COMMITTING'}", ""]

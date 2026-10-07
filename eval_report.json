@@ -58,5 +58,29 @@
   "passed": true,
   "numbers": "correct: ours 100% vs naive 100% (gap 0pp); spend per task: ours 9.03c vs naive 27.63c (67% less, SIMULATED); tokens per task: ours 7345 vs naive 18829. SAME-BUDGET BASELINE (Keenable order, 10c, not part of pass/fail): correct 100%, spend 9.17c, tokens 6255",
   "notes": "n=6 held-out tasks x 3 runs (small sample)"
+ },
+ {
+  "eval": "F1 catches superseded pages",
+  "passed": false,
+  "numbers": "no numbers",
+  "notes": "not implemented: freshness check"
+ },
+ {
+  "eval": "F2 no false alarms on controls",
+  "passed": false,
+  "numbers": "no numbers",
+  "notes": "not implemented: freshness check"
+ },
+ {
+  "eval": "F3 a flagged page costs less",
+  "passed": false,
+  "numbers": "no numbers",
+  "notes": "not implemented: freshness check"
+ },
+ {
+  "eval": "F4 END-TO-END alert cases, ours vs naive",
+  "passed": false,
+  "numbers": "no numbers",
+  "notes": "not implemented: scoring cost accounting"
  }
 ]

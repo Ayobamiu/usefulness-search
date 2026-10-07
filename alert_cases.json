@@ -1,0 +1,196 @@
+{
+ "_note": "Alert-driven sales cases. tune = cases 1,2,3,4,5,9,11 (W_SUPERSEDED is tuned only on these). heldout = 6,7,8,10,12,13,14,15 (never tune on them). control = drafted by the coding agent: the alert should still be the latest news, UNVERIFIED until Usman confirms. old/new are draft keyword regexes matched on lower-cased text.",
+ "task": "We got an alert: {alert} Write a one-paragraph outreach angle for {name}.",
+ "cases": [
+  {
+   "id": "a01",
+   "split": "tune",
+   "status": "from superseded-news-cases.md",
+   "name": "Humane (the AI hardware startup)",
+   "alert": "Humane has put its Ai Pin on sale.",
+   "query": "Humane Ai Pin launch",
+   "old": "ai pin",
+   "new": "\\bhp\\b|shut(ting|s)? ?(down|off)|discontinu|wind(ing)? down"
+  },
+  {
+   "id": "a02",
+   "split": "tune",
+   "status": "from superseded-news-cases.md",
+   "name": "Builder.ai",
+   "alert": "Builder.ai has named a new CEO and announced a new chapter for the company.",
+   "query": "Builder.ai new CEO",
+   "old": "new ceo|new chapter|ratia|steps? down",
+   "new": "insolven|bankrupt|out of money|collaps|administrat|liquidat"
+  },
+  {
+   "id": "a03",
+   "split": "tune",
+   "status": "from superseded-news-cases.md",
+   "name": "Windsurf (the AI coding tool company)",
+   "alert": "OpenAI has agreed to buy Windsurf for about $3 billion.",
+   "query": "OpenAI Windsurf acquisition",
+   "old": "openai",
+   "new": "google|collaps|f(e|a)lls? apart|fell through|cognition|interim ceo"
+  },
+  {
+   "id": "a04",
+   "split": "tune",
+   "status": "from superseded-news-cases.md",
+   "name": "Figure AI",
+   "alert": "Figure AI raised $675M and announced a collaboration with OpenAI.",
+   "query": "Figure AI OpenAI partnership",
+   "old": "openai|675",
+   "new": "in.house|drop(s|ped|ping)|own (ai )?models|end(s|ed|ing) (its |the )?(openai |)?(partnership|collaboration)"
+  },
+  {
+   "id": "a05",
+   "split": "tune",
+   "status": "from superseded-news-cases.md",
+   "name": "Natron Energy",
+   "alert": "Natron Energy announced a $1.4 billion sodium-ion battery factory in North Carolina.",
+   "query": "Natron Energy North Carolina battery factory",
+   "old": "1\\.4 ?(b|billion)|north carolina|gigafactory|new (plant|factory)",
+   "new": "clos(e|es|ed|ing|ure)|ceas|shut|wind(ing)? down|liquidat"
+  },
+  {
+   "id": "a09",
+   "split": "tune",
+   "status": "from superseded-news-cases.md",
+   "name": "Rad Power Bikes",
+   "alert": "Rad Power Bikes named Kathi Lentzsch as its new CEO.",
+   "query": "Rad Power Bikes new CEO Kathi Lentzsch",
+   "old": "lentzsch",
+   "new": "chapter 11|bankrupt|life ev|new owner"
+  },
+  {
+   "id": "a11",
+   "split": "tune",
+   "status": "from superseded-news-cases.md",
+   "name": "Forward (the primary care startup)",
+   "alert": "Forward is rolling out its CarePod AI health kiosks to more cities.",
+   "query": "Forward CarePod rollout",
+   "old": "carepod",
+   "new": "shut|clos(e|es|ed|ing|ure)|ceas|wind(ing)? down"
+  },
+  {
+   "id": "a06",
+   "split": "heldout",
+   "status": "from superseded-news-cases.md",
+   "name": "Notion",
+   "alert": "Notion has launched Notion Mail, an AI-driven email inbox.",
+   "query": "Notion Mail launch",
+   "old": "notion mail",
+   "new": "shut(ting|s)? ?down|sunset|discontinu|wind(ing)? down|retir(e|ed|ing)"
+  },
+  {
+   "id": "a07",
+   "split": "heldout",
+   "status": "from superseded-news-cases.md",
+   "name": "80 Acres Farms",
+   "alert": "80 Acres Farms acquired three farms to expand its national footprint.",
+   "query": "80 Acres Farms acquisition of three farms",
+   "old": "acqui|expan",
+   "new": "shut(ting|s)? ?down|wind(ing)? down|clos(e|es|ed|ing|ure)|ceas"
+  },
+  {
+   "id": "a08",
+   "split": "heldout",
+   "status": "from superseded-news-cases.md",
+   "name": "Limitless (formerly Rewind)",
+   "alert": "Limitless launched a $99 AI pendant that records your conversations.",
+   "query": "Limitless AI pendant launch",
+   "old": "pendant",
+   "new": "\\bmeta\\b|acquir|stop(s|ped|ping)? sell|no longer (sell|available)|end(s|ed|ing)? sales"
+  },
+  {
+   "id": "a10",
+   "split": "heldout",
+   "status": "from superseded-news-cases.md",
+   "name": "Plenty (the vertical farming company)",
+   "alert": "Plenty opened a vertical farm in Richmond, Virginia to grow indoor strawberries.",
+   "query": "Plenty Richmond vertical strawberry farm opening",
+   "old": "richmond|strawberr",
+   "new": "chapter 11|bankrupt|restructur"
+  },
+  {
+   "id": "a12",
+   "split": "heldout",
+   "status": "from superseded-news-cases.md",
+   "name": "Northvolt",
+   "alert": "Northvolt raised a $5 billion green loan to expand its battery gigafactory.",
+   "query": "Northvolt $5 billion green loan expansion",
+   "old": "green loan|5 ?(b|bn|billion)",
+   "new": "chapter 11|bankrupt|insolven"
+  },
+  {
+   "id": "a13",
+   "split": "heldout",
+   "status": "from superseded-news-cases.md",
+   "name": "Tools for Humanity (World)",
+   "alert": "Tools for Humanity announced World partnerships with Zoom, DocuSign and others.",
+   "query": "Tools for Humanity World Zoom DocuSign partnership",
+   "old": "zoom|docusign|partnership",
+   "new": "layoff|laid off|job cuts|cut(s|ting)? (staff|jobs)|downsiz"
+  },
+  {
+   "id": "a14",
+   "split": "heldout",
+   "status": "from superseded-news-cases.md",
+   "name": "Lattice (the HR software company)",
+   "alert": "Lattice announced it will give AI 'digital workers' official employee records in its HR platform.",
+   "query": "Lattice AI digital workers employee records",
+   "old": "digital worker",
+   "new": "scrap|walk(s|ed|ing)? back|revers|abandon|backlash|cancel|no longer|halt|pull(s|ed|ing)? (the|its|back)"
+  },
+  {
+   "id": "a15",
+   "split": "heldout",
+   "status": "from superseded-news-cases.md",
+   "name": "Scale AI",
+   "alert": "Meta invested $14.3 billion in Scale AI and hired its CEO Alexandr Wang.",
+   "query": "Meta Scale AI $14.3 billion investment",
+   "old": "14\\.3|\\bmeta\\b",
+   "new": "layoff|laid off|job cuts|los(t|es|ing) (customers|clients)|cut(s|ting)? (ties|staff|14)"
+  },
+  {
+   "id": "c01",
+   "split": "control",
+   "status": "UNVERIFIED",
+   "name": "Databricks",
+   "alert": "Databricks has acquired Neon, the serverless Postgres company.",
+   "query": "Databricks Neon acquisition"
+  },
+  {
+   "id": "c02",
+   "split": "control",
+   "status": "UNVERIFIED",
+   "name": "Stripe",
+   "alert": "Stripe has completed its acquisition of the stablecoin platform Bridge.",
+   "query": "Stripe Bridge acquisition"
+  },
+  {
+   "id": "c03",
+   "split": "control",
+   "status": "UNVERIFIED",
+   "name": "Salesforce",
+   "alert": "Salesforce has completed its acquisition of Informatica.",
+   "query": "Salesforce Informatica acquisition"
+  },
+  {
+   "id": "c04",
+   "split": "control",
+   "status": "UNVERIFIED",
+   "name": "ServiceNow",
+   "alert": "ServiceNow has acquired Moveworks, the enterprise AI assistant company.",
+   "query": "ServiceNow Moveworks acquisition"
+  },
+  {
+   "id": "c05",
+   "split": "control",
+   "status": "UNVERIFIED",
+   "name": "OpenAI",
+   "alert": "OpenAI has acquired io, the hardware startup co-founded by Jony Ive.",
+   "query": "OpenAI io Jony Ive acquisition"
+  }
+ ]
+}
