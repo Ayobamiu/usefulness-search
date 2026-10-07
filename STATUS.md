@@ -35,3 +35,10 @@ new session starts from the last commit and this file, not from scratch.
 - Keenable REST: `POST api.keenable.ai/v1/search`, `GET /v1/fetch`, header `X-API-Key`.
   Search results carry `title, url, description, snippet, acquired_at`. No headings, no score.
 - Chat model `gpt-4o-mini` accepts temperature 0.
+
+## Option 4 experiment (2026-10-06, training topics only): no win
+- `experiments/option4.py`: 18 contextual tasks, model-written query, label = page answers the task alone.
+- 88% of ALL pages Keenable returns answer the task alone. Keenable p@3 0.93, ours (sees task) 0.94 to 0.98:
+  a difference of 1 to 3 pages out of 54, i.e. noise. Control: with an unrelated page the model is right 1 of 18.
+- Conclusion: on single-fact docs questions there is no ranking headroom. The win must be claimed elsewhere
+  (fewer pages for the same answer, stop rule, duplicates) or on harder tasks.
