@@ -83,3 +83,32 @@ new session starts from the last commit and this file, not from scratch.
   Natron is borderline (says the factory was cancelled, does not say the company closed).
 - Both models saw the newer story in the pages they read and still wrote from the old one.
 - Freshness check still NOT built. Waiting on Usman.
+
+## Freshness build (2026-10-07): built, NOT working well enough. Alert demo NOT started. Waiting on Usman.
+Built and committed:
+- `usefulness.freshness` (one gpt-4o-mini call per result set), `W_SUPERSEDED = 0.5` (multiplies the score, so
+  price drops through the normal price rule), publish date from Keenable's `published_at` or the URL.
+- Buyer sees the search layer's superseded notes (a short list before the pages, and on any flagged page it reads).
+  Naive sees none. Alert tasks use a neutral prompt (`PROMPTS["alert"]`); docs prompt unchanged.
+- Scoring cost: `clients.metering()` counts every scoring token; `agents.totals(log)` gives reading, scoring,
+  total tokens and simulated cost. Token prices are in `config.json`.
+- `alert_cases.json` (7 tune, 8 held-out, 5 draft controls UNVERIFIED), evals F1 to F4, `experiments/tune_alerts.py`.
+
+Evals: 12 of 14 pass. The original 10 all pass.
+- F1 FAIL: caught 2 of 4 eligible held-out cases (only 4 of 8 had both stories in Keenable's results).
+- F2 PASS: 0 of 5 control cases flagged (0 of 50 pages). F3 PASS: 41 of 41 flagged pages are cheaper.
+- F4 FAIL: stale answers (keyword check) ours 24/24 vs naive 21/24 (8 held-out cases x 3 runs).
+  Tokens per query: naive 13,804; ours 4,010 reading + 31,488 scoring. NET tokens saved including scoring: -21,694.
+  NET cost saved including scoring: 15.73c (driven by simulated page prices). Second agent reusing scores: +9,794 tokens.
+- Docs held-out with scoring counted: naive 18,829 tokens; ours 7,364 reading + 18,031 scoring = 25,395. Net -6,566.
+
+Why it fails (tuning cases only):
+- Detection is noisy: gpt-4o-mini in one call misses the old pages on Humane, Builder.ai, Forward and sometimes
+  flags new-story pages. A two-step prompt was noisier and was reverted.
+- The agent ignores the evidence: with the real detector the buyer is stale on 5 of 7 tuning cases (naive 4 of 7).
+- Ceiling tests with PERFECT flags (from the keyword lists): stale 3 of 7 with the "superseded by <title>" note,
+  2 of 7 when the note states the later event instead of a page title. So the specified note format caps the gain.
+- Scoring tokens are dominated by the duplicate check (one call per offer per purchase).
+
+Options put to Usman: (1) note states the later event + shared prompt tells agents to follow search-layer notes +
+better detector; (2) batch the duplicate check to cut scoring tokens; (3) fall back to the docs demo (cost + loop).

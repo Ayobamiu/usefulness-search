@@ -6,5 +6,11 @@
   "page_max_chars": 8000,
   "budget_cents": 10,
   "heldout_runs": 3,
-  "demo_task_id": "t16"
+  "demo_task_id": "t16",
+  "token_prices_usd_per_million": {
+    "_note": "List prices as configured here; used only to turn token counts into a simulated cost.",
+    "chat_input": 0.15,
+    "chat_output": 0.6,
+    "embedding": 0.02
+  }
 }

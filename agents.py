@@ -1,9 +1,12 @@
 """Naive agent, buyer agent and the same-budget Keenable baseline.
 
-Both agents use the same model and the same prompt on the same cached pages.
-The only difference is which pages get read.
+All agents use the same model and the same prompt on the same cached pages.
+The only differences are which pages get read, and that the buyer is shown our notes on them.
 
-Both return a run log:
+A task is {"id", "question"} plus optionally "query" (what to search for, default: the question)
+and "kind": "docs" (default) or "alert" (sales alert research).
+
+Every agent returns a run log:
   {"task_id", "agent": "naive" | "buyer" | "topk", "run": int, "query",
    "results":   [result, ...]         what the search layer returned
    "fetched":   [url, ...]            pages actually read
@@ -14,7 +17,9 @@ Both return a run log:
    "spent_cents": float               SIMULATED
    "answer": str, "citations": [url, ...]
    "invalid_citations": [str, ...]    cited by the model but never read; not counted as used
-   "tokens": {"prompt", "completion", "total"}   from the API usage fields}
+   "tokens":  {"prompt", "completion", "total"}              the agent's reading call, from the API usage fields
+   "scoring": {"embedding", "chat_prompt", "chat_completion"} tokens OUR scoring used for this query
+                                      (zeros for agents that do not use our scores)}
 """
 import hashlib
 import json
@@ -22,34 +27,53 @@ import json
 import clients
 import usefulness
 
-ANSWER_PROMPT = (
-    "You answer a coding documentation question using ONLY the pages provided. "
-    "Be short and state the specific fact asked for. If the pages do not contain the answer, "
-    "say that you could not find it.\n"
-    "Cite the URL of every page you actually took the answer from, and no other page.\n"
-    'Reply with JSON: {"answer": "...", "citations": ["<url>", ...]}')
+PROMPTS = {
+    "docs": (
+        "You answer a coding documentation question using ONLY the pages provided. "
+        "Be short and state the specific fact asked for. If the pages do not contain the answer, "
+        "say that you could not find it.\n"
+        "Cite the URL of every page you actually took the answer from, and no other page.\n"
+        'Reply with JSON: {"answer": "...", "citations": ["<url>", ...]}'),
+    "alert": (
+        "You complete the task using ONLY the pages provided. Keep it to one short paragraph.\n"
+        "Cite the URL of every page you actually took facts from, and no other page.\n"
+        'Reply with JSON: {"answer": "...", "citations": ["<url>", ...]}'),
+}
 
 # The buyer stops when the best remaining page is worth less than this.
 STOP_BELOW_USEFULNESS = 0.45
+NO_SCORING = {"embedding": 0, "chat_prompt": 0, "chat_completion": 0}
 
 
 def _slim(offer):
     return {k: offer[k] for k in ("url", "usefulness", "price_cents")}
 
 
-def _answer(question, pages, run):
-    """The one prompt both agents share. Reads the pages and returns answer, citations, tokens."""
-    # Pages are shown in a fixed shuffled order (by URL hash), the same rule for every agent,
-    # so the model cannot favour a page just because a ranking put it first.
+def superseded_note(page):
+    by = page.get("superseded_by")
+    return f'superseded by "{by["title"]}"' + (f' ({by["published"]})' if by["published"] else "") if by else ""
+
+
+def _answer(task, pages, run, notes=False, results=()):
+    """The one prompt all agents share. Reads the pages and returns answer, citations, tokens.
+
+    Pages are shown in a fixed shuffled order (by URL hash), the same rule for every agent,
+    so the model cannot favour a page just because a ranking put it first.
+    With notes=True (the buyer), the agent also sees what the search layer said before it bought:
+    which results are superseded, as a short list, and the same note on top of any such page it read.
+    """
     read = []
     for page in sorted(pages, key=lambda p: hashlib.sha256(p["url"].encode()).hexdigest()):
         try:
             content = clients.keenable_fetch(page["url"]).get("content") or page["snippet"]
         except RuntimeError:
             content = page["snippet"]
-        read.append(f"URL: {page['url']}\nTITLE: {page['title']}\n{content}")
-    reply = clients.chat([{"role": "system", "content": ANSWER_PROMPT},
-                          {"role": "user", "content": f"Question: {question}\n\n" + "\n\n-----\n\n".join(read)}],
+        note = f"NOTE: {superseded_note(page)}.\n" if notes and page.get("superseded_by") else ""
+        read.append(f"URL: {page['url']}\nTITLE: {page['title']}\n{note}{content}")
+    flagged = [f'- "{r["title"]}" is {superseded_note(r)}' for r in results if notes and r.get("superseded_by")]
+    layer = "Notes from the search layer on the results for this query:\n" + "\n".join(flagged) + "\n\n" if flagged else ""
+    reply = clients.chat([{"role": "system", "content": PROMPTS[task.get("kind", "docs")]},
+                          {"role": "user", "content": f"Question: {task['question']}\n\n{layer}" + "\n\n-----\n\n".join(read)}],
                          run=run, json_mode=True)
     out = json.loads(reply["content"])
     urls = {p["url"] for p in pages}
@@ -62,19 +86,40 @@ def _answer(question, pages, run):
                        "total": usage["total_tokens"]}}
 
 
-def _log(task, agent, run, results, purchases):
-    bought = {p["url"] for p in purchases}
-    pages = [r for r in results if r["url"] in bought]
-    pages.sort(key=lambda r: [p["url"] for p in purchases].index(r["url"]))
-    return {"task_id": task["id"], "agent": agent, "run": run, "query": task["question"],
+def _log(task, agent, run, results, purchases, scoring=NO_SCORING):
+    order = [p["url"] for p in purchases]
+    pages = sorted((r for r in results if r["url"] in order), key=lambda r: order.index(r["url"]))
+    return {"task_id": task["id"], "agent": agent, "run": run, "query": _query(task),
             "results": results, "fetched": [p["url"] for p in pages], "purchases": purchases,
-            "spent_cents": sum(p["price_cents"] for p in purchases),
-            **_answer(task["question"], pages, run)}
+            "spent_cents": sum(p["price_cents"] for p in purchases), "scoring": dict(scoring),
+            **_answer(task, pages, run, notes=agent == "buyer", results=results)}
+
+
+def _query(task):
+    return task.get("query", task["question"])
+
+
+def totals(log):
+    """Tokens and simulated cost for one query, WITH our scoring work counted.
+
+    total_cents = pages bought (simulated prices) + every model token at the configured prices.
+    """
+    price = clients.CONFIG["token_prices_usd_per_million"]
+    s, t = log["scoring"], log["tokens"]
+    cents = lambda n, kind: n * price[kind] / 1e6 * 100
+    reading_cents = cents(t["prompt"], "chat_input") + cents(t["completion"], "chat_output")
+    scoring_cents = (cents(s["chat_prompt"], "chat_input") + cents(s["chat_completion"], "chat_output")
+                     + cents(s["embedding"], "embedding"))
+    scoring_tokens = sum(s.values())
+    return {"reading_tokens": t["total"], "scoring_tokens": scoring_tokens, "total_tokens": t["total"] + scoring_tokens,
+            "page_cents": log["spent_cents"], "reading_cents": reading_cents, "scoring_cents": scoring_cents,
+            "total_cents": log["spent_cents"] + reading_cents + scoring_cents}
 
 
 def run_naive(task, history, run=0):
-    """Reads the top 10 pages in Keenable's order and pays the listed price for each."""
-    results = usefulness.search(task["question"], history)
+    """Reads the top 10 pages in Keenable's order and pays the listed price for each.
+    It does not use our scores, so it is not charged for scoring."""
+    results = usefulness.search(_query(task), history)
     left = sorted(results, key=lambda r: r["keenable_rank"])
     purchases = [{**_slim(r), "offers_before": [_slim(o) for o in left[i:]]} for i, r in enumerate(left)]
     return _log(task, "naive", run, results, purchases)
@@ -82,7 +127,7 @@ def run_naive(task, history, run=0):
 
 def run_topk(task, history, budget_cents, run=0):
     """Same-budget baseline: buys in Keenable's order until the next page is unaffordable."""
-    results = usefulness.search(task["question"], history)
+    results = usefulness.search(_query(task), history)
     queue = sorted(results, key=lambda r: r["keenable_rank"])
     purchases, left = [], budget_cents
     for i, r in enumerate(queue):
@@ -94,19 +139,20 @@ def run_topk(task, history, budget_cents, run=0):
 
 
 def run_buyer(task, history, budget_cents, run=0):
-    """Buys in order of usefulness per cent, within the budget."""
-    results = usefulness.search(task["question"], history)
-    remaining, bought, purchases, left = list(results), [], [], budget_cents
-    while remaining:
-        offers = usefulness.reprice_after_purchase(task["question"], remaining, bought)
-        affordable = [o for o in offers if o["price_cents"] <= left]
-        if not affordable:
-            break
-        best = max(affordable, key=lambda o: o["usefulness"] / max(o["price_cents"], 1e-9))
-        if best["usefulness"] < STOP_BELOW_USEFULNESS:
-            break
-        purchases.append({**_slim(best), "offers_before": [_slim(o) for o in offers]})
-        left -= best["price_cents"]
-        bought.append(next(r for r in remaining if r["url"] == best["url"]))
-        remaining = [r for r in remaining if r["url"] != best["url"]]
-    return _log(task, "buyer", run, results, purchases)
+    """Buys in order of usefulness per cent, within the budget. Charged for all scoring it relies on."""
+    with clients.metering() as scoring:
+        results = usefulness.search(_query(task), history)
+        remaining, bought, purchases, left = list(results), [], [], budget_cents
+        while remaining:
+            offers = usefulness.reprice_after_purchase(_query(task), remaining, bought)
+            affordable = [o for o in offers if o["price_cents"] <= left]
+            if not affordable:
+                break
+            best = max(affordable, key=lambda o: o["usefulness"] / max(o["price_cents"], 1e-9))
+            if best["usefulness"] < STOP_BELOW_USEFULNESS:
+                break
+            purchases.append({**_slim(best), "offers_before": [_slim(o) for o in offers]})
+            left -= best["price_cents"]
+            bought.append(next(r for r in remaining if r["url"] == best["url"]))
+            remaining = [r for r in remaining if r["url"] != best["url"]]
+    return _log(task, "buyer", run, results, purchases, scoring)

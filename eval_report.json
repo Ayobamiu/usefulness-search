@@ -56,31 +56,31 @@
  {
   "eval": "END-TO-END ours vs naive",
   "passed": true,
-  "numbers": "correct: ours 100% vs naive 100% (gap 0pp); spend per task: ours 9.03c vs naive 27.63c (67% less, SIMULATED); tokens per task: ours 7345 vs naive 18829. SAME-BUDGET BASELINE (Keenable order, 10c, not part of pass/fail): correct 100%, spend 9.17c, tokens 6255",
+  "numbers": "correct: ours 100% vs naive 100% (gap 0pp); spend per task: ours 9.03c vs naive 27.26c (67% less, SIMULATED); tokens per task: ours 7364 vs naive 18829. SAME-BUDGET BASELINE (Keenable order, 10c, not part of pass/fail): correct 100%, spend 9.17c, tokens 6255",
   "notes": "n=6 held-out tasks x 3 runs (small sample)"
  },
  {
   "eval": "F1 catches superseded pages",
   "passed": false,
-  "numbers": "no numbers",
-  "notes": "not implemented: freshness check"
+  "numbers": "caught 2 of 4 eligible cases (8 old-story pages flagged)",
+  "notes": "n=8 held-out alert cases; eligible = Keenable returned both an old-story and a new-story page (keyword match)"
  },
  {
   "eval": "F2 no false alarms on controls",
-  "passed": false,
-  "numbers": "no numbers",
-  "notes": "not implemented: freshness check"
+  "passed": true,
+  "numbers": "0 of 5 control cases have a false alarm (0 of 50 pages flagged)",
+  "notes": "n=5 control cases, drafts UNVERIFIED"
  },
  {
   "eval": "F3 a flagged page costs less",
-  "passed": false,
-  "numbers": "no numbers",
-  "notes": "not implemented: freshness check"
+  "passed": true,
+  "numbers": "41/41 flagged pages are cheaper than the same page without the flag",
+  "notes": "tuning + held-out alert cases"
  },
  {
   "eval": "F4 END-TO-END alert cases, ours vs naive",
   "passed": false,
-  "numbers": "no numbers",
-  "notes": "not implemented: scoring cost accounting"
+  "numbers": "answers pitching the old event as current (keyword check): ours 24/24 vs naive 21/24; pages read: ours 2.9 vs naive 10.0; tokens per query: naive 13804, ours 35498 (reading 4010 + scoring 31488); NET tokens saved INCLUDING scoring -21694; NET cost saved INCLUDING scoring 15.73c (pages SIMULATED + model tokens at configured prices: naive 23.99c, ours 8.26c). IF A SECOND AGENT REUSES CACHED SCORES (scoring paid once): net tokens saved 9794",
+  "notes": "n=8 held-out alert cases x 3 runs (small sample); keyword verdicts need Usman's hand read"
  }
 ]

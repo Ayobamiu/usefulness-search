@@ -1,7 +1,8 @@
 """Usefulness scorer and pricing. Prices are SIMULATED.
 
 Shapes:
-  page    {"url", "title", "snippet"}
+  page    {"url", "title", "snippet", "published": "YYYY-MM-DD" or "" (a hint only),
+           "superseded_by": None or {"url", "title", "published"}}
   result  page + {"keenable_rank": int (1 = Keenable's top), "usefulness": float in [0, 1],
                   "price_cents": float >= 0 (SIMULATED), "is_new": bool}
   history {"pages": {url: {"fetched": n, "cited": n}}, "domains": {domain: {"fetched": n, "cited": n}}}
@@ -9,6 +10,7 @@ Shapes:
 import copy
 import json
 import math
+import re
 from concurrent.futures import ThreadPoolExecutor
 from urllib.parse import urlparse
 
@@ -23,6 +25,9 @@ import clients
 #              + W_PAGE_USAGE   * page usage                             -1..+1
 #              + W_DOMAIN_USAGE * domain usage                           -1..+1
 #
+#   If a later page in the same result set replaces or reverses this page's event,
+#   the whole score is multiplied by (1 - W_SUPERSEDED). Price follows through the price rule.
+#
 #   usage = +1 if always cited when read, -1 if read and never cited, 0 if never read.
 #   The weights sum to 1 with BASELINE, so the result always stays inside [0, 1].
 #
@@ -32,6 +37,7 @@ W_ANSWER_CHECK = 0.25
 W_KEENABLE_RANK = 0.15      # we build on Keenable's ranking, we do not replace it
 W_PAGE_USAGE = 0.15
 W_DOMAIN_USAGE = 0.05
+W_SUPERSEDED = 0.50         # share of usefulness a superseded page loses (tuned on the tuning alert cases only)
 
 # Embedding cosines for text-embedding-3-small rarely leave this band; stretch it to 0..1.
 SIMILARITY_LOW, SIMILARITY_HIGH = 0.15, 0.75
@@ -47,6 +53,17 @@ DUPLICATE_PROMPT = (
     "Two search results for the same coding question are shown. Decide whether result B states the same "
     "answer to the question as result A, so that reading B after A would add nothing new.\n"
     'Reply with JSON: {"same_answer": true} or {"same_answer": false}')
+
+FRESHNESS_PROMPT = (
+    "Below are numbered search results for one query about a company. Which pages report an event about that "
+    "company that a LATER page in this set replaces or reverses? Examples: a product launch, then its shutdown; "
+    "a deal, then its collapse; an appointment, then that person's exit; an expansion, then a bankruptcy.\n"
+    "Rules: flag a page only when another page IN THIS SET reports the later event. A later page that continues, "
+    "confirms or completes the earlier event does not replace it. Do not judge whether anything is true in "
+    "general. Publish dates are a hint only: old stories get republished with new dates, so decide from what "
+    "the pages say happened.\n"
+    'Reply with JSON: {"superseded": [{"page": <number>, "by": <number of the later page>}]} '
+    "(an empty list if none).")
 
 CHECK_PROMPT = (
     "You judge search results for a coding question. Given the question and one result's "
@@ -106,9 +123,36 @@ def _domain(url):
     return urlparse(url).netloc.removeprefix("www.")
 
 
+def published(result):
+    """Publish date as YYYY-MM-DD from Keenable's field or the URL, else "". Never the crawl time."""
+    for key in ("published_at", "published", "publish_date"):
+        if result.get(key):
+            return str(result[key])[:10]
+    m = re.search(r"/(20\d\d)/(\d\d)/(\d\d)/", result["url"])
+    return "-".join(m.groups()) if m else ""
+
+
+def freshness(query, pages):
+    """One model call per result set. {url: the later page that replaces it} for superseded pages."""
+    listing = "\n\n".join(f"[{i}] {p['title']}\npublished: {p.get('published') or 'unknown'}\n{p['snippet'][:600]}"
+                           for i, p in enumerate(pages, 1))
+    reply = clients.chat([{"role": "system", "content": FRESHNESS_PROMPT},
+                          {"role": "user", "content": f"Query: {query}\n\n{listing}"}], json_mode=True)
+    superseded = {}
+    for item in json.loads(reply["content"]).get("superseded", []):
+        try:
+            old, new = pages[int(item["page"]) - 1], pages[int(item["by"]) - 1]
+        except (KeyError, ValueError, TypeError, IndexError):
+            continue
+        if old is not new:
+            superseded[old["url"]] = {k: new.get(k, "") for k in ("url", "title", "published")}
+    # A page cannot be replaced by a page that is itself replaced by it.
+    return {url: by for url, by in superseded.items() if superseded.get(by["url"], {}).get("url") != url}
+
+
 def score(query, page, history):
     """Usefulness in [0, 1] of this page for THIS query."""
-    return (BASELINE
+    return (1 - W_SUPERSEDED * bool(page.get("superseded_by"))) * (BASELINE
             + W_SIMILARITY * _similarity(query, page)
             + W_ANSWER_CHECK * _answer_check(query, page)
             + W_KEENABLE_RANK * _rank_prior(page)
@@ -124,8 +168,12 @@ def price_cents(usefulness):
 def search(query, history):
     """Keenable's top pages for the query, each as a `result`."""
     pages = [{"url": r["url"], "title": r.get("title") or r["url"],
-              "snippet": r.get("snippet") or r.get("description") or "", "keenable_rank": rank}
+              "snippet": r.get("snippet") or r.get("description") or "", "keenable_rank": rank,
+              "published": published(r)}
              for rank, r in enumerate(clients.keenable_search(query), 1)]
+    replaced = freshness(query, pages) if pages else {}
+    for p in pages:
+        p["superseded_by"] = replaced.get(p["url"])
     with ThreadPoolExecutor(len(pages) or 1) as pool:
         scores = list(pool.map(lambda p: score(query, p, history), pages))
     return [{**p, "usefulness": u, "price_cents": price_cents(u), "is_new": p["url"] not in history["pages"]}

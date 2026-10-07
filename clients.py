@@ -3,10 +3,12 @@
 Reruns read from cache/. Set OFFLINE=1 to forbid any network call.
 The API keys are read from .env and never written to cache, logs or errors.
 """
+import contextlib
 import hashlib
 import json
 import os
 import pathlib
+import threading
 import time
 import urllib.error
 import urllib.parse
@@ -29,6 +31,31 @@ def load_env():
 
 
 load_env()
+
+
+_meter = None
+_meter_lock = threading.Lock()
+
+
+@contextlib.contextmanager
+def metering():
+    """Counts the tokens of every model call made inside the block, cached or not.
+
+    Used to charge our own scoring work (embeddings, checks) against our savings.
+    """
+    global _meter
+    outer, _meter = _meter, {"embedding": 0, "chat_prompt": 0, "chat_completion": 0}
+    try:
+        yield _meter
+    finally:
+        _meter = outer
+
+
+def _count(**tokens):
+    if _meter is not None:
+        with _meter_lock:
+            for kind, n in tokens.items():
+                _meter[kind] += n
 
 
 def _cached(service, request, call):
@@ -98,9 +125,13 @@ def _openai(path, body):
 
 def embed(texts):
     """One embedding per text. Cached per text, so repeated snippets cost nothing."""
-    model = CONFIG["embedding_model"]
-    return [_cached("openai_embed", {"model": model, "input": text}, lambda text=text: _openai(
-        "embeddings", {"model": model, "input": text}))["data"][0]["embedding"] for text in texts]
+    model, vectors = CONFIG["embedding_model"], []
+    for text in texts:
+        response = _cached("openai_embed", {"model": model, "input": text}, lambda: _openai(
+            "embeddings", {"model": model, "input": text}))
+        _count(embedding=response["usage"]["total_tokens"])
+        vectors.append(response["data"][0]["embedding"])
+    return vectors
 
 
 def chat(messages, run=0, json_mode=False):
@@ -114,4 +145,5 @@ def chat(messages, run=0, json_mode=False):
         body["response_format"] = {"type": "json_object"}
     response = _cached("openai_chat", {"body": body, "run": run}, lambda: _openai(
         "chat/completions", body))
+    _count(chat_prompt=response["usage"]["prompt_tokens"], chat_completion=response["usage"]["completion_tokens"])
     return {"content": response["choices"][0]["message"]["content"], "usage": response["usage"]}
