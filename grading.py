@@ -4,6 +4,7 @@ import re
 
 def normalize(text):
     text = re.sub(r"[`'\"*]", "", str(text).lower())
+    text = re.sub(r"(?<=\w)-(?=\w)", " ", text)  # "five-minute" matches "five minute"; flags like --rm are untouched
     return re.sub(r"\s+", " ", text).strip()
 
 

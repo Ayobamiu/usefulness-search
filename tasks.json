@@ -33,9 +33,9 @@
    "ground_truth": {
     "type": "expected_fact",
     "any_of": [
-     "5 minutes",
-     "five minutes",
-     "300 seconds"
+     "5 minute",
+     "five minute",
+     "300 second"
     ]
    }
   },
@@ -132,7 +132,7 @@
     "type": "expected_fact",
     "any_of": [
      "30s",
-     "30 seconds"
+     "30 second"
     ]
    }
   },

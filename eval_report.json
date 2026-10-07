@@ -55,8 +55,8 @@
  },
  {
   "eval": "END-TO-END ours vs naive",
-  "passed": false,
-  "numbers": "correct: ours 83% vs naive 100% (gap 17pp); spend per task: ours 9.03c vs naive 27.63c (67% less, SIMULATED); tokens per task: ours 7345 vs naive 18829. SAME-BUDGET BASELINE (Keenable order, 10c, not part of pass/fail): correct 83%, spend 9.17c, tokens 6255",
+  "passed": true,
+  "numbers": "correct: ours 100% vs naive 100% (gap 0pp); spend per task: ours 9.03c vs naive 27.63c (67% less, SIMULATED); tokens per task: ours 7345 vs naive 18829. SAME-BUDGET BASELINE (Keenable order, 10c, not part of pass/fail): correct 100%, spend 9.17c, tokens 6255",
   "notes": "n=6 held-out tasks x 3 runs (small sample)"
  }
 ]

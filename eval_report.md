@@ -15,16 +15,17 @@ Held-out numbers come from n=6 held-out tasks x 3 runs (small sample). Treat the
 | E7 duplicates lose value | PASS | 3/3 planted cases dropped; ['score 0.71->0.46, price 2.99->2.12', 'score 0.71->0.46, price 2.98->2.12', 'score 0.65->0.42, price 2.79->1.99'] |  |
 | E8 price follows usefulness | PASS | 24/24 result sets monotonic | all 24 tasks |
 | E9 budget is respected | PASS | 18/18 runs within 10c budget and bought best usefulness-per-cent first | n=6 held-out tasks x 3 runs (small sample) |
-| END-TO-END ours vs naive | FAIL | correct: ours 83% vs naive 100% (gap 17pp); spend per task: ours 9.03c vs naive 27.63c (67% less, SIMULATED); tokens per task: ours 7345 vs naive 18829. SAME-BUDGET BASELINE (Keenable order, 10c, not part of pass/fail): correct 83%, spend 9.17c, tokens 6255 | n=6 held-out tasks x 3 runs (small sample) |
+| END-TO-END ours vs naive | PASS | correct: ours 100% vs naive 100% (gap 0pp); spend per task: ours 9.03c vs naive 27.63c (67% less, SIMULATED); tokens per task: ours 7345 vs naive 18829. SAME-BUDGET BASELINE (Keenable order, 10c, not part of pass/fail): correct 100%, spend 9.17c, tokens 6255 | n=6 held-out tasks x 3 runs (small sample) |
 
-Passed 9 of 10.
+Passed 10 of 10.
 
 Thresholds confirmed by Usman: NO (placeholders)
 
 UNVERIFIED tasks (24 of 24): t01, t02, t03, t04, t05, t06, t07, t08, t09, t10, t11, t12, t13, t14, t15, t16, t17, t18, t19, t20, t21, t22, t23, t24
 
 Changes to eval code, thresholds, fixtures or tasks since the last run:
-- uncommitted: M eval_thresholds.json
-- uncommitted:  M run_evals.py
+- ae3303f Reframe E5 (no worse than Keenable), rank feature, shuffled reading order, same-budget baseline; 9 of 10 pass
+- uncommitted: M grading.py
+- uncommitted:  M tasks.json
 
 .env ignored by git: yes
