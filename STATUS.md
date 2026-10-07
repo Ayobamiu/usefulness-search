@@ -14,9 +14,11 @@ new session starts from the last commit and this file, not from scratch.
 - Changes: Keenable rank is a feature in the score (W_KEENABLE_RANK), every agent reads pages in a
   fixed shuffled order, E5 now means "no worse than Keenable", end-to-end also reports a same-budget
   Keenable baseline (`agents.run_topk`, not part of pass/fail).
-- E5 passes as an exact tie: 0.500 vs 0.500. Our top 3 equals Keenable's top 3 on the held-out tasks.
+- E5 passes as an exact tie: 0.500 vs 0.500 (our top 3 is the same set as Keenable's on 2 of 6 tasks).
 - END-TO-END FAILS: ours 83% correct vs naive 100% (gap 17pp > 10pp). Spend 67% less, tokens 61% less.
   Same-budget Keenable baseline: also 83%, at similar spend. So ours ties it. Not tuned on held-out.
+  Cause: a grading miss on t03, not a wrong answer. The agents say "five-minute tolerance"; the accepted
+  forms are "5 minutes", "five minutes", "300 seconds" (hyphen not matched). Fix needs Usman's OK (eval change).
 
 ## Next, in order
 - Usman decides what to do about the end-to-end failure (see chat) before step 6.
