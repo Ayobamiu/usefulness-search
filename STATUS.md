@@ -73,3 +73,13 @@ new session starts from the last commit and this file, not from scratch.
   contradicted by a newer page on the same company; superseded pages lose usefulness and carry a
   "superseded by <newer page, date>" note that is shown to the agent.
 - Open risk: a one-line prompt change ("check for newer news") might fix the naive agent for free. Test that first.
+
+## Step B follow-ups (2026-10-07): neither a prompt sentence nor a stronger model fixes it
+- `python3 experiments/superseded.py alert prompt` -> `superseded_alert_prompt_results.md`:
+  default model + "Before writing, check whether newer news contradicts the alert." WRONG on 4 of 7,
+  the same four (Humane, Builder.ai, Rad Power Bikes, Forward). All read by hand and confirmed.
+- `python3 experiments/superseded.py alert strong` -> `superseded_alert_strong_results.md`:
+  gpt-4o, default prompt. Keyword verdict WRONG on 5 of 7. By hand: the same four are real misses;
+  Natron is borderline (says the factory was cancelled, does not say the company closed).
+- Both models saw the newer story in the pages they read and still wrote from the old one.
+- Freshness check still NOT built. Waiting on Usman.

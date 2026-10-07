@@ -6,6 +6,8 @@ the newer story that cancels it. Not part of the evals. Cases come from supersed
     python3 experiments/superseded.py          Step A: query "<company> news"  -> superseded_results.md
     python3 experiments/superseded.py alert    Step B: a signal alert names the OLD event and the agent
                                                researches it                    -> superseded_alert_results.md
+    python3 experiments/superseded.py alert prompt   Step B + one sentence added to the agent's prompt
+    python3 experiments/superseded.py alert strong   Step B on a stronger chat model (STRONG_MODEL)
 
 The keyword lists below are drafts by the coding agent (regexes, matched on lower-cased text).
 CORRECT = the answer reflects the newer event. WRONG = it pitches the old event and not the newer one.
@@ -21,6 +23,8 @@ import clients
 TASK = "Write a one-paragraph sales outreach angle for {name} based on their latest news."
 QUERY = "{name} news"
 ALERT_TASK = "We got an alert: {alert} Write a one-paragraph outreach angle for {name}."
+PROMPT_FIX = " Before writing, check whether newer news contradicts the alert."
+STRONG_MODEL = "gpt-4o"
 ALERT = {  # case number: (the old event in one line, the search query an agent would build from it)
     1: ("Humane has put its Ai Pin on sale.", "Humane Ai Pin launch"),
     2: ("Builder.ai has named a new CEO and announced a new chapter for the company.", "Builder.ai new CEO"),
@@ -98,8 +102,13 @@ def ranks(pages, pattern, url, exclude=None):
     return ", ".join(hits) or "none"
 
 
-def main(alert=False):
+def main(alert=False, variant=""):
     rows, detail, wrong = [], [], 0
+    if variant == "prompt":
+        first, rest = agents.ANSWER_PROMPT.split("\n", 1)
+        agents.ANSWER_PROMPT = first + PROMPT_FIX + "\n" + rest
+    if variant == "strong":
+        clients.CONFIG["chat_model"] = STRONG_MODEL
     for case in CASES:
         task, query = TASK.format(name=case["name"]), QUERY.format(name=case["name"])
         if alert:
@@ -131,14 +140,15 @@ def main(alert=False):
         detail += [f"| {p['keenable_rank']} | {d[0] or '?'} ({d[1]}) | {str(r.get('acquired_at', ''))[:10]} | {p['title'][:90]} |"
                    for p, r, d in zip(pages, raw, dates)]
         detail.append("")
-    report = [f"# Superseded news, {'Step B: the alert names the OLD event' if alert else 'Step A: headroom experiment'}", "",
+    label = {"prompt": f' + prompt sentence "{PROMPT_FIX.strip()}"', "strong": f" + model {STRONG_MODEL}"}.get(variant, "")
+    report = [f"# Superseded news, {'Step B: the alert names the OLD event' if alert else 'Step A: headroom experiment'}{label}", "",
               "Rank columns list every result whose title or snippet matches the event's keywords; `*` marks the exact URL",
               "from superseded-news-cases.md. Verdicts are keyword matches on the naive agent's answer (drafts, see the script).", "",
               "| case | query | OLD story ranks | NEW story ranks | naive agent | publish date found |", "|---|---|---|---|---|---|",
               *rows, "", f"Naive agent WRONG on {wrong} of {len(CASES)}.", "", "## Answers and result lists", "", *detail]
-    open(f"experiments/superseded_{'alert_' if alert else ''}results.md", "w").write("\n".join(report) + "\n")
+    open(f"experiments/superseded_{'alert_' if alert else ''}{variant + '_' if variant else ''}results.md", "w").write("\n".join(report) + "\n")
     print("\n".join(report[:len(rows) + 9]))
 
 
 if __name__ == "__main__":
-    main(alert=sys.argv[1:] == ["alert"])
+    main(alert=sys.argv[1:2] == ["alert"], variant=(sys.argv[2:3] or [""])[0])
