@@ -19,15 +19,17 @@ import clients
 #   usefulness = BASELINE
 #              + W_SIMILARITY   * similarity(query, title + snippet)     0..1
 #              + W_ANSWER_CHECK * "does this snippet answer the query?"  0, 0.5 or 1
+#              + W_KEENABLE_RANK * Keenable's own rank (1st = 1, 10th = 0)  0..1
 #              + W_PAGE_USAGE   * page usage                             -1..+1
 #              + W_DOMAIN_USAGE * domain usage                           -1..+1
 #
 #   usage = +1 if always cited when read, -1 if read and never cited, 0 if never read.
 #   The weights sum to 1 with BASELINE, so the result always stays inside [0, 1].
 #
-BASELINE = 0.20
-W_SIMILARITY = 0.30
-W_ANSWER_CHECK = 0.30
+BASELINE = 0.15
+W_SIMILARITY = 0.25
+W_ANSWER_CHECK = 0.25
+W_KEENABLE_RANK = 0.15      # we build on Keenable's ranking, we do not replace it
 W_PAGE_USAGE = 0.15
 W_DOMAIN_USAGE = 0.05
 
@@ -94,6 +96,12 @@ def _page_usage(counts):
     return 2 * counts["cited"] / counts["fetched"] - 1
 
 
+def _rank_prior(page):
+    """1 for Keenable's top result, 0 for its 10th. Neutral 0.5 for a page Keenable did not rank."""
+    rank = page.get("keenable_rank")
+    return 0.5 if rank is None else max(0.0, 1 - (rank - 1) / 9)
+
+
 def _domain(url):
     return urlparse(url).netloc.removeprefix("www.")
 
@@ -103,6 +111,7 @@ def score(query, page, history):
     return (BASELINE
             + W_SIMILARITY * _similarity(query, page)
             + W_ANSWER_CHECK * _answer_check(query, page)
+            + W_KEENABLE_RANK * _rank_prior(page)
             + W_PAGE_USAGE * _page_usage(history["pages"].get(page["url"]))
             + W_DOMAIN_USAGE * _usage(history["domains"].get(_domain(page["url"]))))
 

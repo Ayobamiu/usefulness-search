@@ -10,22 +10,19 @@ new session starts from the last commit and this file, not from scratch.
 - Steps 3 to 5: `agents.py` (naive + buyer, one shared prompt), `usefulness.py` (score,
   price, search, usage loop, duplicate discount). Evals: 8 of 10 pass, reruns offline.
 
-## Failing, and why (found on TRAINING tasks only)
-- E5 (ours 0.556 vs Keenable 0.833 p@3) and E6 (1 of 18 result sets has score range 0.023 < 0.05).
-- Keenable snippets nearly always contain the answer (155 of 180 rated "yes"), so the
-  cheap check cannot separate pages.
-- The naive agent cites by reading position: reading the same pages in reversed order moved
-  citations from rank 1-3 (40 -> 26) to rank 7-10 (17 -> 35). So the E5 labels favour
-  Keenable's order by construction.
-- A Keenable-rank prior lifts our train p@3 from 0.54 to 0.74 (a tie with Keenable, not a win).
-  Not added: waiting on Usman's choice below.
+## Current evals: 9 of 10 pass (after the 2026-10-06 reframe agreed with Usman)
+- Changes: Keenable rank is a feature in the score (W_KEENABLE_RANK), every agent reads pages in a
+  fixed shuffled order, E5 now means "no worse than Keenable", end-to-end also reports a same-budget
+  Keenable baseline (`agents.run_topk`, not part of pass/fail).
+- E5 passes as an exact tie: 0.500 vs 0.500. Our top 3 equals Keenable's top 3 on the held-out tasks.
+- END-TO-END FAILS: ours 83% correct vs naive 100% (gap 17pp > 10pp). Spend 67% less, tokens 61% less.
+  Same-budget Keenable baseline: also 83%, at similar spend. So ours ties it. Not tuned on held-out.
 
 ## Next, in order
-- Usman decides how to handle E5 label bias (shuffle reading order / rank prior / leave as is).
+- Usman decides what to do about the end-to-end failure (see chat) before step 6.
 - Step 6: demo screen (Beats 1, 3, 4, then 2). Step 7: video run with `--pace`.
 
 ## Waiting on Usman
-- E5 decision above.
 - Verify the 24 tasks. t04 draft fact looks stale: pages say the current GitHub API
   version is 2026-03-10, the draft expects 2022-11-28.
 - Confirm `eval_thresholds.json` (set `confirmed_by_usman` to true).

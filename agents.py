@@ -1,10 +1,10 @@
-"""Naive agent and buyer agent.
+"""Naive agent, buyer agent and the same-budget Keenable baseline.
 
 Both agents use the same model and the same prompt on the same cached pages.
 The only difference is which pages get read.
 
 Both return a run log:
-  {"task_id", "agent": "naive" | "buyer", "run": int, "query",
+  {"task_id", "agent": "naive" | "buyer" | "topk", "run": int, "query",
    "results":   [result, ...]         what the search layer returned
    "fetched":   [url, ...]            pages actually read
    "purchases": [{"url", "usefulness", "price_cents",
@@ -16,6 +16,7 @@ Both return a run log:
    "invalid_citations": [str, ...]    cited by the model but never read; not counted as used
    "tokens": {"prompt", "completion", "total"}   from the API usage fields}
 """
+import hashlib
 import json
 
 import clients
@@ -38,8 +39,10 @@ def _slim(offer):
 
 def _answer(question, pages, run):
     """The one prompt both agents share. Reads the pages and returns answer, citations, tokens."""
+    # Pages are shown in a fixed shuffled order (by URL hash), the same rule for every agent,
+    # so the model cannot favour a page just because a ranking put it first.
     read = []
-    for page in pages:
+    for page in sorted(pages, key=lambda p: hashlib.sha256(p["url"].encode()).hexdigest()):
         try:
             content = clients.keenable_fetch(page["url"]).get("content") or page["snippet"]
         except RuntimeError:
@@ -75,6 +78,19 @@ def run_naive(task, history, run=0):
     left = sorted(results, key=lambda r: r["keenable_rank"])
     purchases = [{**_slim(r), "offers_before": [_slim(o) for o in left[i:]]} for i, r in enumerate(left)]
     return _log(task, "naive", run, results, purchases)
+
+
+def run_topk(task, history, budget_cents, run=0):
+    """Same-budget baseline: buys in Keenable's order until the next page is unaffordable."""
+    results = usefulness.search(task["question"], history)
+    queue = sorted(results, key=lambda r: r["keenable_rank"])
+    purchases, left = [], budget_cents
+    for i, r in enumerate(queue):
+        if r["price_cents"] > left:
+            break
+        purchases.append({**_slim(r), "offers_before": [_slim(o) for o in queue[i:]]})
+        left -= r["price_cents"]
+    return _log(task, "topk", run, results, purchases)
 
 
 def run_buyer(task, history, budget_cents, run=0):

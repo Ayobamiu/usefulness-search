@@ -8,14 +8,14 @@
  {
   "eval": "E2 usefulness depends on the task",
   "passed": true,
-  "numbers": "6/6 pairs; (A, B) scores [(0.674, 0.2), (0.658, 0.222), (0.657, 0.243), (0.741, 0.2), (0.519, 0.283), (0.722, 0.311)]",
+  "numbers": "6/6 pairs; (A, B) scores [(0.62, 0.225), (0.604, 0.241), (0.606, 0.261), (0.676, 0.225), (0.491, 0.294), (0.66, 0.317)]",
   "notes": "trained history"
  },
  {
   "eval": "E3 usage log is honest",
   "passed": true,
-  "numbers": "54/54 runs cite only fetched pages",
-  "notes": "train + held-out, both agents"
+  "numbers": "72/72 runs cite only fetched pages",
+  "notes": "train + held-out, all agents"
  },
  {
   "eval": "E4 loop learns in the right direction",
@@ -24,21 +24,21 @@
   "notes": "training tasks only"
  },
  {
-  "eval": "E5 prediction beats plain relevance (KEY)",
-  "passed": false,
-  "numbers": "precision@3: ours 0.556 vs Keenable raw 0.833; per task (ours vs raw): t03 0.67 vs 1.00, t07 0.33 vs 1.00, t11 0.67 vs 0.67, t15 0.67 vs 1.00, t19 0.33 vs 0.67, t23 0.67 vs 0.67",
+  "eval": "E5 prediction no worse than plain relevance (KEY)",
+  "passed": true,
+  "numbers": "precision@3: ours 0.500 vs Keenable raw 0.500; per task (ours vs raw): t03 0.33 vs 0.33, t07 1.00 vs 1.00, t11 0.33 vs 0.33, t15 0.33 vs 0.33, t19 0.67 vs 0.67, t23 0.33 vs 0.33",
   "notes": "n=6 held-out tasks x 3 runs (small sample); labels = naive agent citations"
  },
  {
   "eval": "E6 cold start is not a blank score",
-  "passed": false,
-  "numbers": "17/18 result sets have score range >= 0.05 (min range 0.023); E2 unseen 6/6",
+  "passed": true,
+  "numbers": "18/18 result sets have score range >= 0.05 (min range 0.145); E2 unseen 6/6",
   "notes": "empty history, training queries"
  },
  {
   "eval": "E7 duplicates lose value",
   "passed": true,
-  "numbers": "3/3 planted cases dropped; ['score 0.78->0.51, price 3.25->2.28', 'score 0.78->0.51, price 3.24->2.28', 'score 0.71->0.46, price 3.00->2.13']",
+  "numbers": "3/3 planted cases dropped; ['score 0.71->0.46, price 2.99->2.12', 'score 0.71->0.46, price 2.98->2.12', 'score 0.65->0.42, price 2.79->1.99']",
   "notes": ""
  },
  {
@@ -55,8 +55,8 @@
  },
  {
   "eval": "END-TO-END ours vs naive",
-  "passed": true,
-  "numbers": "correct: ours 100% vs naive 100% (gap 0pp); spend per task: ours 9.24c vs naive 29.65c (69% less, SIMULATED); tokens per task: ours 6610 vs naive 18852",
+  "passed": false,
+  "numbers": "correct: ours 83% vs naive 100% (gap 17pp); spend per task: ours 9.03c vs naive 27.63c (67% less, SIMULATED); tokens per task: ours 7345 vs naive 18829. SAME-BUDGET BASELINE (Keenable order, 10c, not part of pass/fail): correct 83%, spend 9.17c, tokens 6255",
   "notes": "n=6 held-out tasks x 3 runs (small sample)"
  }
 ]

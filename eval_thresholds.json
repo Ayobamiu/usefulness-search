@@ -6,7 +6,7 @@
   "e3_min_fraction_honest_runs": 1.0,
   "e4_min_fraction_right_direction": 0.9,
   "e5_precision_at_k": 3,
-  "e5_ours_must_beat_keenable": true,
+  "e5_max_shortfall_vs_keenable": 0.0,
   "e6_min_score_range_per_result_set": 0.05,
   "e6_min_pairs_correct_unseen": 5,
   "e7_min_fraction_cases_dropped": 1.0,

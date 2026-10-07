@@ -52,7 +52,8 @@ def heldout_logs(agent):
             if agent == "naive":
                 logs.append(agents.run_naive(task, trained_history(), run=run))
             else:
-                logs.append(agents.run_buyer(task, trained_history(), CONFIG["budget_cents"], run=run))
+                buy = agents.run_buyer if agent == "buyer" else agents.run_topk
+                logs.append(buy(task, trained_history(), CONFIG["budget_cents"], run=run))
     return logs
 
 
@@ -93,10 +94,10 @@ def e2_task_dependent():
 
 
 def e3_honest_log():
-    logs = train_logs() + heldout_logs("naive") + heldout_logs("buyer")
+    logs = train_logs() + heldout_logs("naive") + heldout_logs("buyer") + heldout_logs("topk")
     honest = sum(set(log["citations"]) <= set(log["fetched"]) for log in logs)
     return (honest / len(logs) >= T["e3_min_fraction_honest_runs"],
-            f"{honest}/{len(logs)} runs cite only fetched pages", "train + held-out, both agents")
+            f"{honest}/{len(logs)} runs cite only fetched pages", "train + held-out, all agents")
 
 
 def e4_loop_direction():
@@ -128,7 +129,8 @@ def e5_beats_relevance():
     keen = statistics.mean(m[0] for m in means.values())
     ours = statistics.mean(m[1] for m in means.values())
     detail = ", ".join(f"{tid} {m[1]:.2f} vs {m[0]:.2f}" for tid, m in means.items())
-    return (ours > keen, f"precision@{k}: ours {ours:.3f} vs Keenable raw {keen:.3f}; per task (ours vs raw): {detail}",
+    # Reframed 2026-10-06 with Usman: the claim is "no worse than Keenable", not "beats it".
+    return (ours >= keen - T["e5_max_shortfall_vs_keenable"], f"precision@{k}: ours {ours:.3f} vs Keenable raw {keen:.3f}; per task (ours vs raw): {detail}",
             f"{N}; labels = naive agent citations")
 
 
@@ -198,14 +200,14 @@ def e9_budget():
 
 def e2e_demo_claim():
     stats = {}
-    for agent in ("naive", "buyer"):
+    for agent in ("naive", "buyer", "topk"):
         logs = heldout_logs(agent)
         stats[agent] = {
             "correct": statistics.mean(grade(task_by_id(l["task_id"]), l["answer"]) for l in logs),
             "spent": statistics.mean(l["spent_cents"] for l in logs),
             "tokens": statistics.mean(l["tokens"]["total"] for l in logs),
         }
-    n, o = stats["naive"], stats["buyer"]
+    n, o, k = stats["naive"], stats["buyer"], stats["topk"]
     gap_pp = (n["correct"] - o["correct"]) * 100
     saving = 1 - o["spent"] / n["spent"] if n["spent"] else 0
     passed = (gap_pp <= T["e2e_max_correctness_gap_pp"] and saving >= T["e2e_min_spend_reduction"]
@@ -213,7 +215,9 @@ def e2e_demo_claim():
     return (passed,
             f"correct: ours {o['correct']:.0%} vs naive {n['correct']:.0%} (gap {gap_pp:.0f}pp); "
             f"spend per task: ours {o['spent']:.2f}c vs naive {n['spent']:.2f}c ({saving:.0%} less, SIMULATED); "
-            f"tokens per task: ours {o['tokens']:.0f} vs naive {n['tokens']:.0f}", N)
+            f"tokens per task: ours {o['tokens']:.0f} vs naive {n['tokens']:.0f}. "
+            f"SAME-BUDGET BASELINE (Keenable order, {CONFIG['budget_cents']}c, not part of pass/fail): "
+            f"correct {k['correct']:.0%}, spend {k['spent']:.2f}c, tokens {k['tokens']:.0f}", N)
 
 
 EVALS = [
@@ -221,7 +225,7 @@ EVALS = [
     ("E2 usefulness depends on the task", e2_task_dependent),
     ("E3 usage log is honest", e3_honest_log),
     ("E4 loop learns in the right direction", e4_loop_direction),
-    ("E5 prediction beats plain relevance (KEY)", e5_beats_relevance),
+    ("E5 prediction no worse than plain relevance (KEY)", e5_beats_relevance),
     ("E6 cold start is not a blank score", e6_cold_start),
     ("E7 duplicates lose value", e7_duplicates),
     ("E8 price follows usefulness", e8_price_follows_usefulness),
