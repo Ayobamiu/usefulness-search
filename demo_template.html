@@ -69,10 +69,10 @@
 </div>
 <footer>
   <div class="strip">
-    <div class="counters"><div><b id="pL">0</b><span>pages read</span></div><div><b id="mL">0.00c</b><span>spent</span></div><div><b id="tL">-</b><span>tokens used</span></div></div>
-    <div class="counters"><div><b id="pR">0</b><span>pages read</span></div><div><b id="mR">0.00c</b><span>spent</span></div><div><b id="tR">-</b><span>tokens used</span></div></div>
+    <div class="counters"><div><b id="pL">0</b><span>pages read</span></div><div><b id="mL">0.00c</b><span>spent: pages + model tokens</span></div><div><b id="tL">-</b><span>tokens used</span></div></div>
+    <div class="counters"><div><b id="pR">0</b><span>pages read</span></div><div><b id="mR">0.00c</b><span>spent: pages + model tokens</span></div><div><b id="tR">-</b><span id="tRsub">tokens used, our scoring included</span></div></div>
   </div>
-  <div class="sim">Prices simulated. No real money moves.</div>
+  <div class="sim">Prices simulated. No real money moves. <span id="reuse"></span></div>
 </footer>
 <div id="end"><div></div></div>
 <script>
@@ -147,11 +147,14 @@ async function play() {
   const bought = new Set(D.buyer.fetched);
   D.buyer.results.forEach(r => { if (!bought.has(r.url)) rows.R[r.url].classList.add("off"); });
   await sleep(700);
-  for (const [id, log, ok, t] of [["ansL", D.naive, D.naive_correct, "tL"], ["ansR", D.buyer, D.buyer_correct, "tR"]]) {
+  for (const [id, log, ok, t, m, tot] of [["ansL", D.naive, D.naive_correct, "tL", "mL", D.totals.naive], ["ansR", D.buyer, D.buyer_correct, "tR", "mR", D.totals.buyer]]) {
     $(id).innerHTML = `<span class="verdict ${ok ? "pass" : "fail"}">${ok ? "PASS" : "FAIL"}</span> ` +
       `<span class="label" style="display:inline"> correctness check</span><br>${esc(log.answer)}`;
-    $(id).classList.add("show"); $(t).textContent = log.tokens.total.toLocaleString();
+    $(id).classList.add("show"); $(t).textContent = tot.total_tokens.toLocaleString(); $(m).textContent = cents(tot.total_cents);
   }
+  const b = D.totals.buyer;
+  $("tRsub").textContent = `tokens: reading ${b.reading_tokens.toLocaleString()} + our scoring ${b.scoring_tokens.toLocaleString()}`;
+  $("reuse").textContent = `A second agent reusing these scores would use ${b.reading_tokens.toLocaleString()} tokens.`;
   await sleep(1500);
   // Beat 4: the loop
   await beat(4, "The loop", "Pages the agent cited move up. Pages it bought but did not use move down.");

@@ -39,6 +39,7 @@ def run(task, train, budget):
                      "after": usefulness.score(task["question"], pages[url], after)}
                for url in buyer["fetched"]}
     return {"task": task, "budget_cents": budget, "naive": naive, "buyer": buyer, "score_changes": changes,
+            "totals": {"naive": agents.totals(naive), "buyer": agents.totals(buyer)},  # scoring cost included
             "naive_correct": grade(task, naive["answer"]), "buyer_correct": grade(task, buyer["answer"])}
 
 

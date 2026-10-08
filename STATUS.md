@@ -113,3 +113,23 @@ Why it fails (tuning cases only):
 
 Options put to Usman: (1) note states the later event + shared prompt tells agents to follow search-layer notes +
 better detector; (2) batch the duplicate check to cut scoring tokens; (3) fall back to the docs demo (cost + loop).
+
+## Decision 2026-10-07 (Usman): docs demo is the main demo; duplicate check batched. Alert work is "what's next".
+- Duplicate check is now ONE model call per purchase (snippets cut to 400 chars). Scoring tokens per docs
+  query fell from 37,782 to 14,564. Docs held-out with scoring counted: ours 20,698 (6,134 reading + 14,564
+  scoring) vs naive 18,829, NET -1,870 tokens; cost 9.42c vs 27.54c, NET +18.13c (simulated page prices).
+  Second agent reusing scores: +12,695 tokens. Alert held-out: NET -3,468 tokens, +16.10c.
+- Evals: 12 of 14. Original 10 pass. F2, F3 pass. F1 and F4 fail (freshness left in place, not fixed).
+- Docs end-to-end line now also reports the scoring-included numbers (not part of pass/fail).
+  OPEN: its pass rule "ours uses fewer tokens" still compares READING tokens only. With scoring counted
+  ours uses MORE. Changing the rule needs Usman's OK.
+- Demo (`python3 demo.py`, still t16): counters show pages + model-token cost and tokens with scoring
+  included (this example: naive 18,349 tokens / 27.45c; ours 20,080 tokens = 5,302 reading + 14,778 scoring / 9.27c),
+  plus "a second agent reusing these scores would use 5,302 tokens". End card closes with x, click outside, Esc.
+- Remaining scoring cost: answer checks (10 calls) and embeddings on snippets up to 2,000 chars. Trimming
+  those would likely make net tokens positive but changes docs scores; not done.
+
+## Next
+- Usman: record the video; verify tasks (t04 first) and the 5 control cases; confirm thresholds; decide the
+  token pass rule above.
+- README with the one-paragraph thesis; push only when Usman says so.

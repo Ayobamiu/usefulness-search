@@ -8,9 +8,9 @@ Among those: fewest shared pages, then lowest task id. The usage history exclude
 
 | task | top-3 pages shared with Keenable | naive correct | ours correct | qualifies | question |
 |---|---|---|---|---|---|
-| t01 | 2 | yes | no | no | How do I paginate results in the Stripe API? Which parameter fetches the next page of a list? |
+| t01 | 2 | yes | yes | no | How do I paginate results in the Stripe API? Which parameter fetches the next page of a list? |
 | t02 | 2 | yes | yes | no | For how long does Stripe keep an idempotency key before it can be pruned and reused as a new request? |
-| t04 | 3 | yes | yes | no | Which date value should be sent in the X-GitHub-Api-Version header to pin the current GitHub REST API version? |
+| t04 | 2 | yes | yes | no | Which date value should be sent in the X-GitHub-Api-Version header to pin the current GitHub REST API version? |
 | t05 | 3 | yes | yes | no | How many requests per hour does the GitHub REST API allow for unauthenticated requests under the primary rate limit? |
 | t06 | 3 | yes | yes | no | In which Python version was the tomllib module added to the standard library? |
 | t08 | 3 | yes | yes | no | In which Python version was itertools.batched added? |
@@ -21,8 +21,8 @@ Among those: fewest shared pages, then lowest task id. The usage history exclude
 | t14 | 2 | yes | yes | no | What is the default value of terminationGracePeriodSeconds for a Kubernetes Pod? |
 | t16 | 1 | yes | yes | yes | In Next.js 15, GET Route Handlers are no longer cached by default. Which value of the dynamic route segment config option opts a GET handler back into caching? |
 | t17 | 3 | yes | yes | no | Which Node.js command-line flag, added in v20.6.0, loads environment variables from a file without the dotenv package? |
-| t18 | 3 | yes | yes | no | Which FastAPI app parameter replaces the deprecated on_event startup and shutdown handlers? |
-| t20 | 3 | yes | yes | no | Which response_format type makes the OpenAI Chat Completions API guarantee output that matches a JSON Schema you supply (Structured Outputs)? |
+| t18 | 1 | yes | yes | yes | Which FastAPI app parameter replaces the deprecated on_event startup and shutdown handlers? |
+| t20 | 1 | yes | yes | yes | Which response_format type makes the OpenAI Chat Completions API guarantee output that matches a JSON Schema you supply (Structured Outputs)? |
 | t21 | 2 | yes | yes | no | Which Redis command, added in 6.2.0, returns the value of a key and deletes the key in one atomic step? |
 | t22 | 2 | yes | yes | no | Which operator, added in TypeScript 4.9, checks that an expression matches a type without changing the expression's inferred type? |
 | t24 | 3 | yes | yes | no | Which flag of aws s3 sync removes files from the destination that no longer exist in the source? |
