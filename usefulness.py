@@ -50,9 +50,11 @@ PRICE_PER_USEFULNESS_CENTS = 3.5
 DUPLICATE_DISCOUNT = 0.35
 
 DUPLICATE_PROMPT = (
-    "Two search results for the same coding question are shown. Decide whether result B states the same "
-    "answer to the question as result A, so that reading B after A would add nothing new.\n"
-    'Reply with JSON: {"same_answer": true} or {"same_answer": false}')
+    "A question is shown with the search results an agent ALREADY HAS and numbered CANDIDATE results. "
+    "Which candidates state the same answer to the question as a result the agent already has, so that "
+    "reading them would add nothing new?\n"
+    'Reply with JSON: {"duplicates": [<candidate numbers>]} (an empty list if none).')
+DUPLICATE_SNIPPET_CHARS = 400   # keeps the check cheap: it is charged against our savings
 
 FRESHNESS_PROMPT = (
     "Below are numbered search results for one query about a company. Which pages report an event about that "
@@ -191,21 +193,26 @@ def update_history(history, run_log):
     return history
 
 
-def _same_answer(query, bought, offer):
-    reply = clients.chat([{"role": "system", "content": DUPLICATE_PROMPT},
-                          {"role": "user", "content": f"Question: {query}\n\nResult A:\n{_text(bought)}"
-                                                      f"\n\nResult B:\n{_text(offer)}"}], json_mode=True)
-    return json.loads(reply["content"]).get("same_answer") is True
+def _brief(page):
+    return f"{page['title']}\n{page['snippet'][:DUPLICATE_SNIPPET_CHARS]}"
 
 
 def reprice_after_purchase(query, offers, bought_pages):
     """Offers re-scored and re-priced given what was already bought: duplicates lose value.
 
+    One model call per purchase, covering every remaining offer.
     Always pass the ORIGINAL offers, so the discount is not applied twice.
     """
-    def reprice(offer):
-        duplicate = any(_same_answer(query, bought, offer) for bought in bought_pages)
-        u = offer["usefulness"] * (1 - DUPLICATE_DISCOUNT * duplicate)
-        return {**offer, "usefulness": u, "price_cents": price_cents(u), "duplicate": duplicate}
-    with ThreadPoolExecutor(len(offers) or 1) as pool:
-        return list(pool.map(reprice, offers))
+    duplicates = set()
+    if bought_pages and offers:
+        have = "\n\n".join(f"- {_brief(p)}" for p in bought_pages)
+        candidates = "\n\n".join(f"[{i}] {_brief(o)}" for i, o in enumerate(offers, 1))
+        reply = clients.chat([{"role": "system", "content": DUPLICATE_PROMPT},
+                              {"role": "user", "content": f"Question: {query}\n\nALREADY HAS:\n{have}"
+                                                          f"\n\nCANDIDATES:\n{candidates}"}], json_mode=True)
+        duplicates = {n for n in json.loads(reply["content"]).get("duplicates", []) if isinstance(n, int)}
+    repriced = []
+    for i, offer in enumerate(offers, 1):
+        u = offer["usefulness"] * (1 - DUPLICATE_DISCOUNT * (i in duplicates))
+        repriced.append({**offer, "usefulness": u, "price_cents": price_cents(u), "duplicate": i in duplicates})
+    return repriced

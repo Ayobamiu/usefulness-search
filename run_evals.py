@@ -209,6 +209,8 @@ def e2e_demo_claim():
             "tokens": statistics.mean(l["tokens"]["total"] for l in logs),
         }
     n, o, k = stats["naive"], stats["buyer"], stats["topk"]
+    tb = lambda key: statistics.mean(agents.totals(l)[key] for l in heldout_logs("buyer"))
+    tn = lambda key: statistics.mean(agents.totals(l)[key] for l in heldout_logs("naive"))
     gap_pp = (n["correct"] - o["correct"]) * 100
     saving = 1 - o["spent"] / n["spent"] if n["spent"] else 0
     passed = (gap_pp <= T["e2e_max_correctness_gap_pp"] and saving >= T["e2e_min_spend_reduction"]
@@ -218,7 +220,12 @@ def e2e_demo_claim():
             f"spend per task: ours {o['spent']:.2f}c vs naive {n['spent']:.2f}c ({saving:.0%} less, SIMULATED); "
             f"tokens per task: ours {o['tokens']:.0f} vs naive {n['tokens']:.0f}. "
             f"SAME-BUDGET BASELINE (Keenable order, {CONFIG['budget_cents']}c, not part of pass/fail): "
-            f"correct {k['correct']:.0%}, spend {k['spent']:.2f}c, tokens {k['tokens']:.0f}", N)
+            f"correct {k['correct']:.0%}, spend {k['spent']:.2f}c, tokens {k['tokens']:.0f}. "
+            f"WITH OUR SCORING COUNTED (not part of pass/fail): ours {tb('total_tokens'):.0f} tokens "
+            f"(reading {tb('reading_tokens'):.0f} + scoring {tb('scoring_tokens'):.0f}) vs naive {tn('total_tokens'):.0f}, "
+            f"NET tokens saved {tn('total_tokens') - tb('total_tokens'):.0f}; cost incl. model tokens: ours {tb('total_cents'):.2f}c "
+            f"vs naive {tn('total_cents'):.2f}c, NET cost saved {tn('total_cents') - tb('total_cents'):.2f}c. "
+            f"IF A SECOND AGENT REUSES CACHED SCORES: net tokens saved {tn('total_tokens') - tb('reading_tokens'):.0f}", N)
 
 
 # ---- freshness evals (alert-driven sales cases, alert_cases.json) ----
