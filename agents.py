@@ -47,6 +47,11 @@ STOP_BELOW_USEFULNESS = 0.45
 NO_SCORING = {"embedding": 0, "chat_prompt": 0, "chat_completion": 0, "strong_prompt": 0, "strong_completion": 0}
 
 
+def answer_model(task):
+    """The answering model for this kind of task. The same for every agent."""
+    return clients.CONFIG.get("answer_models", {}).get(task.get("kind", "docs"), clients.CONFIG["chat_model"])
+
+
 def _slim(offer):
     return {k: offer[k] for k in ("url", "usefulness", "price_cents")}
 
@@ -86,7 +91,7 @@ def _answer(task, pages, run, notes=False, results=()):
     layer = "Search layer notes for this query (some results are marked as superseded):\n" + "\n".join(flagged) + "\n\n" if flagged else ""
     reply = clients.chat([{"role": "system", "content": PROMPTS[task.get("kind", "docs")]},
                           {"role": "user", "content": f"Question: {task['question']}\n\n{layer}" + "\n\n-----\n\n".join(read)}],
-                         run=run, json_mode=True)
+                         run=run, json_mode=True, model=answer_model(task))
     out = json.loads(reply["content"])
     urls = {p["url"] for p in pages}
     cited = [c for c in out.get("citations", []) if isinstance(c, str)]
@@ -95,7 +100,7 @@ def _answer(task, pages, run, notes=False, results=()):
             "citations": [c for c in cited if c in urls],
             "invalid_citations": [c for c in cited if c not in urls],
             "tokens": {"prompt": usage["prompt_tokens"], "completion": usage["completion_tokens"],
-                       "total": usage["total_tokens"]}}
+                       "total": usage["total_tokens"], "model": answer_model(task)}}
 
 
 def _log(task, agent, run, results, purchases, scoring=NO_SCORING):
@@ -123,7 +128,8 @@ def totals(log):
     price = clients.CONFIG["token_prices_usd_per_million"]
     s, t = log["scoring"], log["tokens"]
     cents = lambda n, kind: n * price[kind] / 1e6 * 100
-    reading_cents = cents(t["prompt"], "chat_input") + cents(t["completion"], "chat_output")
+    tier = "chat" if t.get("model", clients.CONFIG["chat_model"]) == clients.CONFIG["chat_model"] else "strong"
+    reading_cents = cents(t["prompt"], tier + "_input") + cents(t["completion"], tier + "_output")
     scoring_cents = (cents(s["chat_prompt"], "chat_input") + cents(s["chat_completion"], "chat_output")
                      + cents(s.get("strong_prompt", 0), "strong_input") + cents(s.get("strong_completion", 0), "strong_output")
                      + cents(s["embedding"], "embedding"))
