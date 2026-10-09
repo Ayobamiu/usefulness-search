@@ -55,9 +55,33 @@
  },
  {
   "eval": "END-TO-END ours vs naive",
-  "passed": true,
-  "numbers": "correct: ours 100% vs naive 100% (gap 0pp); spend per task: ours 9.15c vs naive 27.26c (66% less, SIMULATED); tokens per task: ours 6134 vs naive 18829. SAME-BUDGET BASELINE (Keenable order, 10c, not part of pass/fail): correct 100%, spend 9.17c, tokens 6255. WITH OUR SCORING COUNTED (not part of pass/fail): ours 20698 tokens (reading 6134 + scoring 14564) vs naive 18829, NET tokens saved -1870; cost incl. model tokens: ours 9.42c vs naive 27.54c, NET cost saved 18.13c. IF A SECOND AGENT REUSES CACHED SCORES: net tokens saved 12695",
+  "passed": false,
+  "numbers": "correct: ours 100% vs naive 100% (gap 0pp); spend per task: ours 9.15c vs naive 27.26c (66% less, SIMULATED); READING tokens per task: ours 6134 vs naive 18829. SAME-BUDGET BASELINE (Keenable order, 10c, not part of pass/fail): correct 100%, spend 9.17c, tokens 6255. WITH OUR SCORING COUNTED (this is the pass rule for tokens): ours 20698 tokens (reading 6134 + scoring 14564) vs naive 18829, NET tokens saved -1870; cost incl. model tokens: ours 9.42c vs naive 27.54c, NET cost saved 18.13c. IF A SECOND AGENT REUSES CACHED SCORES: net tokens saved 12695",
   "notes": "n=6 held-out tasks x 3 runs (small sample)"
+ },
+ {
+  "eval": "S1 sales quality: ours no worse than naive",
+  "passed": false,
+  "numbers": "no numbers",
+  "notes": "not implemented: sales mode"
+ },
+ {
+  "eval": "S2 sales cost: ours cheaper, scoring included",
+  "passed": false,
+  "numbers": "no numbers",
+  "notes": "not implemented: sales mode"
+ },
+ {
+  "eval": "S3 live company query runs",
+  "passed": false,
+  "numbers": "no numbers",
+  "notes": "not implemented: demo.py --company"
+ },
+ {
+  "eval": "S4 no company names in the logic",
+  "passed": true,
+  "numbers": "0 company names found in usefulness.py, agents.py, demo.py (20 names checked)",
+  "notes": "grep for every case, control and pre-cached company name"
  },
  {
   "eval": "F1 catches superseded pages",

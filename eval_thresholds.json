@@ -14,9 +14,13 @@
   "e9_min_fraction_runs_within_budget": 1.0,
   "e2e_max_correctness_gap_pp": 10,
   "e2e_min_spend_reduction": 0.4,
-  "e2e_ours_must_use_fewer_tokens": true,
   "f1_min_fraction_eligible_cases_caught": 0.6,
   "f2_max_control_cases_with_false_alarm": 0,
   "f3_min_fraction_flagged_pages_cheaper": 1.0,
-  "f4_ours_must_have_fewer_stale_answers": true
+  "f4_ours_must_have_fewer_stale_answers": true,
+  "e2e_ours_must_use_fewer_tokens_scoring_included": true,
+  "s1_max_extra_stale_answers": 0,
+  "s1_max_fewer_current_answers": 0,
+  "s2_ours_must_cost_less_scoring_included": true,
+  "s3_max_seconds": 90
 }

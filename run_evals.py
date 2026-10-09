@@ -209,19 +209,20 @@ def e2e_demo_claim():
             "tokens": statistics.mean(l["tokens"]["total"] for l in logs),
         }
     n, o, k = stats["naive"], stats["buyer"], stats["topk"]
-    tb = lambda key: statistics.mean(agents.totals(l)[key] for l in heldout_logs("buyer"))
-    tn = lambda key: statistics.mean(agents.totals(l)[key] for l in heldout_logs("naive"))
     gap_pp = (n["correct"] - o["correct"]) * 100
     saving = 1 - o["spent"] / n["spent"] if n["spent"] else 0
+    tb = lambda key: statistics.mean(agents.totals(l)[key] for l in heldout_logs("buyer"))
+    tn = lambda key: statistics.mean(agents.totals(l)[key] for l in heldout_logs("naive"))
+    # Approved by Usman 2026-10-08: "fewer tokens" counts our scoring tokens, not reading tokens alone.
     passed = (gap_pp <= T["e2e_max_correctness_gap_pp"] and saving >= T["e2e_min_spend_reduction"]
-              and o["tokens"] < n["tokens"])
+              and tb("total_tokens") < tn("total_tokens"))
     return (passed,
             f"correct: ours {o['correct']:.0%} vs naive {n['correct']:.0%} (gap {gap_pp:.0f}pp); "
             f"spend per task: ours {o['spent']:.2f}c vs naive {n['spent']:.2f}c ({saving:.0%} less, SIMULATED); "
-            f"tokens per task: ours {o['tokens']:.0f} vs naive {n['tokens']:.0f}. "
+            f"READING tokens per task: ours {o['tokens']:.0f} vs naive {n['tokens']:.0f}. "
             f"SAME-BUDGET BASELINE (Keenable order, {CONFIG['budget_cents']}c, not part of pass/fail): "
             f"correct {k['correct']:.0%}, spend {k['spent']:.2f}c, tokens {k['tokens']:.0f}. "
-            f"WITH OUR SCORING COUNTED (not part of pass/fail): ours {tb('total_tokens'):.0f} tokens "
+            f"WITH OUR SCORING COUNTED (this is the pass rule for tokens): ours {tb('total_tokens'):.0f} tokens "
             f"(reading {tb('reading_tokens'):.0f} + scoring {tb('scoring_tokens'):.0f}) vs naive {tn('total_tokens'):.0f}, "
             f"NET tokens saved {tn('total_tokens') - tb('total_tokens'):.0f}; cost incl. model tokens: ours {tb('total_cents'):.2f}c "
             f"vs naive {tn('total_cents'):.2f}c, NET cost saved {tn('total_cents') - tb('total_cents'):.2f}c. "
@@ -333,6 +334,67 @@ def f4_alert_end_to_end():
             f"{NA} x {RUNS} runs (small sample); keyword verdicts need Usman's hand read")
 
 
+# ---- sales research mode (the main demo): "{company} news", all 15 companies ----
+
+def sales_module():
+    try:
+        import sales
+    except ImportError:
+        raise NotImplementedError("sales mode") from None
+    return sales
+
+
+def s1_sales_quality():
+    summary = sales_module().summary()
+    o, n = summary["buyer"], summary["naive"]
+    passed = (o["stale"] - n["stale"] <= T["s1_max_extra_stale_answers"]
+              and n["current"] - o["current"] <= T["s1_max_fewer_current_answers"])
+    return (passed, f"current: ours {o['current']} vs naive {n['current']}; stale: ours {o['stale']} vs naive {n['stale']}; "
+                    f"other: ours {o['other']} vs naive {n['other']} (of {summary['n']} each)",
+            f"n={summary['n']} companies, 1 run each; keyword verdicts, Usman reads experiments/sales_results.md")
+
+
+def s2_sales_cost():
+    summary = sales_module().summary()
+    o, n = summary["buyer"], summary["naive"]
+    return (o["total_cents"] < n["total_cents"],
+            f"cost per query, scoring included (pages SIMULATED + model tokens): ours {o['total_cents']:.2f}c vs naive {n['total_cents']:.2f}c; "
+            f"pages read: ours {o['pages']:.1f} vs naive {n['pages']:.1f}; tokens: ours {o['total_tokens']:.0f} "
+            f"(reading {o['reading_tokens']:.0f} + scoring {o['scoring_tokens']:.0f}) vs naive {n['total_tokens']:.0f}; "
+            f"if a second agent reuses the cached scores, ours uses {o['reading_tokens']:.0f} tokens",
+            f"n={summary['n']} companies, 1 run each")
+
+
+def s3_live_query():
+    import os
+    import time
+    if "--company" not in (ROOT / "demo.py").read_text():
+        raise NotImplementedError("demo.py --company")
+    runs = [(name, {"OFFLINE": "1"}) for name in CONFIG["precached_companies"][:3]] + [(CONFIG["s3_online_company"], {})]
+    rows, ok = [], 0
+    for name, extra in runs:
+        start = time.time()
+        proc = subprocess.run([sys.executable, "demo.py", "--company", name, "--no-open"], cwd=ROOT,
+                              capture_output=True, text=True, env={**os.environ, **extra})
+        seconds = time.time() - start
+        run = json.loads((ROOT / "demo_run.json").read_text()) if proc.returncode == 0 else {}
+        good = proc.returncode == 0 and not run.get("fallback") and seconds < T["s3_max_seconds"]
+        ok += good
+        rows.append(f"{name} ({'offline' if extra else 'online allowed'}): {seconds:.0f}s {'ok' if good else 'FAILED or fell back'}")
+    return (ok == len(runs), f"{ok}/{len(runs)} ran end to end under {T['s3_max_seconds']}s; " + "; ".join(rows),
+            "3 pre-cached companies with OFFLINE=1, plus 1 other company with the network allowed (cached after its first run)")
+
+
+def s4_no_hardcoding():
+    names = {c["name"].split(" (")[0].lower() for c in ALERTS["cases"]} | {n.lower() for n in CONFIG.get("precached_companies", [])}
+    names |= {CONFIG.get("s3_online_company", "").lower()} - {""}
+    files = [f for f in ("usefulness.py", "agents.py", "demo.py", "sales.py") if (ROOT / f).exists()]
+    hits = [f"{f}: {name}" for f in files for name in sorted(names)
+            if re.search(rf"\b{re.escape(name)}\b", (ROOT / f).read_text().lower())]
+    return (not hits, f"{len(hits)} company names found in {', '.join(files)} ({len(names)} names checked)" + (f": {hits}" if hits else ""),
+            "grep for every case, control and pre-cached company name")
+
+
 EVALS = [
     ("E1 score and price on every result", e1_score_and_price),
     ("E2 usefulness depends on the task", e2_task_dependent),
@@ -344,6 +406,10 @@ EVALS = [
     ("E8 price follows usefulness", e8_price_follows_usefulness),
     ("E9 budget is respected", e9_budget),
     ("END-TO-END ours vs naive", e2e_demo_claim),
+    ("S1 sales quality: ours no worse than naive", s1_sales_quality),
+    ("S2 sales cost: ours cheaper, scoring included", s2_sales_cost),
+    ("S3 live company query runs", s3_live_query),
+    ("S4 no company names in the logic", s4_no_hardcoding),
     ("F1 catches superseded pages", f1_catches_superseded),
     ("F2 no false alarms on controls", f2_no_false_alarms),
     ("F3 a flagged page costs less", f3_flag_lowers_price),

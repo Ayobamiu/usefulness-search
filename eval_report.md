@@ -15,13 +15,17 @@ Held-out numbers come from n=6 held-out tasks x 3 runs (small sample). Treat the
 | E7 duplicates lose value | PASS | 3/3 planted cases dropped; ['score 0.71->0.46, price 2.99->2.12', 'score 0.71->0.46, price 2.98->2.12', 'score 0.65->0.42, price 2.79->1.99'] |  |
 | E8 price follows usefulness | PASS | 24/24 result sets monotonic | all 24 tasks |
 | E9 budget is respected | PASS | 18/18 runs within 10c budget and bought best usefulness-per-cent first | n=6 held-out tasks x 3 runs (small sample) |
-| END-TO-END ours vs naive | PASS | correct: ours 100% vs naive 100% (gap 0pp); spend per task: ours 9.15c vs naive 27.26c (66% less, SIMULATED); tokens per task: ours 6134 vs naive 18829. SAME-BUDGET BASELINE (Keenable order, 10c, not part of pass/fail): correct 100%, spend 9.17c, tokens 6255. WITH OUR SCORING COUNTED (not part of pass/fail): ours 20698 tokens (reading 6134 + scoring 14564) vs naive 18829, NET tokens saved -1870; cost incl. model tokens: ours 9.42c vs naive 27.54c, NET cost saved 18.13c. IF A SECOND AGENT REUSES CACHED SCORES: net tokens saved 12695 | n=6 held-out tasks x 3 runs (small sample) |
+| END-TO-END ours vs naive | FAIL | correct: ours 100% vs naive 100% (gap 0pp); spend per task: ours 9.15c vs naive 27.26c (66% less, SIMULATED); READING tokens per task: ours 6134 vs naive 18829. SAME-BUDGET BASELINE (Keenable order, 10c, not part of pass/fail): correct 100%, spend 9.17c, tokens 6255. WITH OUR SCORING COUNTED (this is the pass rule for tokens): ours 20698 tokens (reading 6134 + scoring 14564) vs naive 18829, NET tokens saved -1870; cost incl. model tokens: ours 9.42c vs naive 27.54c, NET cost saved 18.13c. IF A SECOND AGENT REUSES CACHED SCORES: net tokens saved 12695 | n=6 held-out tasks x 3 runs (small sample) |
+| S1 sales quality: ours no worse than naive | FAIL | no numbers | not implemented: sales mode |
+| S2 sales cost: ours cheaper, scoring included | FAIL | no numbers | not implemented: sales mode |
+| S3 live company query runs | FAIL | no numbers | not implemented: demo.py --company |
+| S4 no company names in the logic | PASS | 0 company names found in usefulness.py, agents.py, demo.py (20 names checked) | grep for every case, control and pre-cached company name |
 | F1 catches superseded pages | FAIL | caught 2 of 4 eligible cases (8 old-story pages flagged) | n=8 held-out alert cases; eligible = Keenable returned both an old-story and a new-story page (keyword match) |
 | F2 no false alarms on controls | PASS | 0 of 5 control cases have a false alarm (0 of 50 pages flagged) | n=5 control cases, drafts UNVERIFIED |
 | F3 a flagged page costs less | PASS | 41/41 flagged pages are cheaper than the same page without the flag | tuning + held-out alert cases |
 | F4 END-TO-END alert cases, ours vs naive | FAIL | answers pitching the old event as current (keyword check): ours 24/24 vs naive 21/24; pages read: ours 2.8 vs naive 10.0; tokens per query: naive 13804, ours 17272 (reading 3933 + scoring 13339); NET tokens saved INCLUDING scoring -3468; NET cost saved INCLUDING scoring 16.10c (pages SIMULATED + model tokens at configured prices: naive 23.99c, ours 7.89c). IF A SECOND AGENT REUSES CACHED SCORES (scoring paid once): net tokens saved 9871 | n=8 held-out alert cases x 3 runs (small sample); keyword verdicts need Usman's hand read |
 
-Passed 12 of 14.
+Passed 12 of 18.
 
 Thresholds confirmed by Usman: NO (placeholders)
 
@@ -30,6 +34,8 @@ UNVERIFIED tasks (24 of 24): t01, t02, t03, t04, t05, t06, t07, t08, t09, t10, t
 UNVERIFIED control cases (5 of 5): c01, c02, c03, c04, c05
 
 Changes to eval code, thresholds, fixtures or tasks since the last run:
-- uncommitted: M run_evals.py
+- b2692f5 Batch the duplicate check (one call per purchase); docs end-to-end reports scoring-included numbers
+- uncommitted: M eval_thresholds.json
+- uncommitted:  M run_evals.py
 
 .env ignored by git: yes
