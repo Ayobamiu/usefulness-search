@@ -195,3 +195,25 @@ What the attempt showed:
   Rad Power Bikes and Notion became "other"; Plenty became stale for both agents).
 - Side effect seen during the attempt: the prompt change invalidated the pre-cached companies, so S3 failed offline.
   Not an issue after the rollback.
+
+## Freshness attempt 3 (2026-10-08 night): NOT merged. Staying on `main`. Work is on `freshness-gpt4o-attempt`.
+Attempt 2 plus gpt-4o as the ANSWERING model for both agents in alert and sales modes (docs unchanged).
+Costs use gpt-4o prices ($2.50 / $10 per million tokens) for those calls.
+
+| Measure (keyword verdicts) | main (5d8f71f) | Attempt 2 | Attempt 3 |
+|---|---|---|---|
+| Alert tuning, stale answers, n=7 | ours 5, naive 4 | ours 3, naive 4 | ours 3, naive 4 |
+| Sales, n=15: current | ours 8, naive 9 | ours 7, naive 9 | ours 11, naive 10 |
+| Sales, n=15: stale | ours 0, naive 2 | ours 1, naive 2 | ours 1, naive 2 |
+| Sales, n=15: other | ours 7, naive 4 | ours 7, naive 4 | ours 3, naive 3 |
+| Alert held-out, stale, n=8 x 3 runs (run once) | ours 24/24, naive 21/24 | ours 21/24, naive 21/24 | ours 16/24, naive 15/24 |
+| F1 eligible held-out cases caught | 2 of 4 | 4 of 4 | 4 of 4 |
+| F2 false alarms on controls, n=5 | 0 | 0 | 0 |
+| Sales cost per query, scoring included | ours 8.38c, naive 25.07c | ours 8.99c, naive 23.12c | ours 10.30c, naive 26.61c |
+| Sales tokens per query, scoring included | ours 17,132, naive 14,054 | ours 19,490, naive 14,083 | ours 19,539, naive 14,067 |
+
+Keep rule for attempt 3: alert tuning beats naive (yes, 3 vs 4); sales fewer stale and at least as many current
+(YES: 1 vs 2 stale, 11 vs 10 current; S1 passes); held-out not worse than naive (NO: 16 vs 15 of 24, one answer);
+F2 passes (yes); original evals E1 to E9 pass (yes). One condition fails by one answer, so not merged.
+Demo companies were NOT re-cached. On the branch S3 fails offline for that reason only.
+Not done: no tuning after the held-out run; the 16 vs 15 answers have not been read by hand.
