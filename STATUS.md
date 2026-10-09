@@ -133,3 +133,34 @@ better detector; (2) batch the duplicate check to cut scoring tokens; (3) fall b
 - Usman: record the video; verify tasks (t04 first) and the 5 control cases; confirm thresholds; decide the
   token pass rule above.
 - README with the one-paragraph thesis; push only when Usman says so.
+
+## Sales pivot (2026-10-08): built. 14 of 18 evals pass. Demo freezes Fri night. Nothing pushed.
+Built:
+- `sales.py`: task "Write a one-paragraph sales outreach angle for {company} based on their latest news.",
+  query "{company} news", freshness check OFF in this mode, no weights changed. `python3 sales.py` writes
+  `experiments/sales_results.md` (all 30 answers).
+- `demo.py`: no args = sales demo from cache (Windsurf, see `demo_candidates.md`); `--company "X"` = live run in a
+  child process with a hard 90 s limit, falls back to the nearest cached run and says so; `--docs` = t16 backup.
+  Live runs took 11 to 14 s. Pre-cached: Nvidia, Stripe, Figma, Databricks, Shopify (+ Airbnb for S3).
+- Demo screen: task line is the largest text; beats are answers + verdict, cost counters, reuse line, loop;
+  end card shows S1 and S2. Companies outside the case list show "live run, not graded".
+- One fix: the buyer now always reads at least one page (it had bought zero pages for Figure AI).
+
+Numbers, sales, n=15 companies, 1 run each, scoring included:
+- Quality by keyword: current ours 8 vs naive 9; stale ours 0 vs naive 2; other ours 7 vs naive 4.
+- BY HAND (4 of our "other" answers read): Natron and Forward are real misses. Both companies shut down; ours
+  pitched them as growing (naive caught the shutdown). So "same results" is NOT supported; it is "close".
+- Pages 2.9 vs 10.0. Cost 8.38c vs 25.07c. Tokens 17,132 (4,574 reading + 12,559 scoring) vs 14,054.
+
+Evals:
+- PASS: E1 to E9, S2, S3 (4 of 4 runs under 90 s), S4 (0 company names in the logic), F2, F3.
+- FAIL: S1 (one fewer "current" answer than naive). Docs END-TO-END (token rule now counts scoring:
+  20,698 vs 18,829). F1, F4 (freshness, unchanged).
+- Step 5 (trim scoring snippets) NOT done: the brief allows it only if Steps 1 to 4 pass, and S1 fails.
+- Secret scan of the whole history, all branches: no keys found. `.env`, `cache/`, `demo.html`, `demo_run.json` untracked.
+- README.md drafted on local `main`. GitHub PR #1 (branch `add-readme`) holds the OLD README and is now out of date.
+
+Waiting on Usman:
+- Read `experiments/sales_results.md` and confirm or correct the verdicts.
+- Decide the pitch wording given S1 (see chat), and whether to do Step 5 anyway.
+- Approve README.md, add the video link, say when to push and what to do with PR #1.

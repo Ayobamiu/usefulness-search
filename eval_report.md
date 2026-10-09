@@ -16,16 +16,16 @@ Held-out numbers come from n=6 held-out tasks x 3 runs (small sample). Treat the
 | E8 price follows usefulness | PASS | 24/24 result sets monotonic | all 24 tasks |
 | E9 budget is respected | PASS | 18/18 runs within 10c budget and bought best usefulness-per-cent first | n=6 held-out tasks x 3 runs (small sample) |
 | END-TO-END ours vs naive | FAIL | correct: ours 100% vs naive 100% (gap 0pp); spend per task: ours 9.15c vs naive 27.26c (66% less, SIMULATED); READING tokens per task: ours 6134 vs naive 18829. SAME-BUDGET BASELINE (Keenable order, 10c, not part of pass/fail): correct 100%, spend 9.17c, tokens 6255. WITH OUR SCORING COUNTED (this is the pass rule for tokens): ours 20698 tokens (reading 6134 + scoring 14564) vs naive 18829, NET tokens saved -1870; cost incl. model tokens: ours 9.42c vs naive 27.54c, NET cost saved 18.13c. IF A SECOND AGENT REUSES CACHED SCORES: net tokens saved 12695 | n=6 held-out tasks x 3 runs (small sample) |
-| S1 sales quality: ours no worse than naive | FAIL | no numbers | not implemented: sales mode |
-| S2 sales cost: ours cheaper, scoring included | FAIL | no numbers | not implemented: sales mode |
-| S3 live company query runs | FAIL | no numbers | not implemented: demo.py --company |
-| S4 no company names in the logic | PASS | 0 company names found in usefulness.py, agents.py, demo.py (20 names checked) | grep for every case, control and pre-cached company name |
+| S1 sales quality: ours no worse than naive | FAIL | current: ours 8 vs naive 9; stale: ours 0 vs naive 2; other: ours 7 vs naive 4 (of 15 each) | n=15 companies, 1 run each; keyword verdicts, Usman reads experiments/sales_results.md |
+| S2 sales cost: ours cheaper, scoring included | PASS | cost per query, scoring included (pages SIMULATED + model tokens): ours 8.38c vs naive 25.07c; pages read: ours 2.9 vs naive 10.0; tokens: ours 17132 (reading 4574 + scoring 12559) vs naive 14054; if a second agent reuses the cached scores, ours uses 4574 tokens | n=15 companies, 1 run each |
+| S3 live company query runs | PASS | 4/4 ran end to end under 90s; Nvidia (offline): 0s ok; Stripe (offline): 0s ok; Figma (offline): 0s ok; Airbnb (online allowed): 14s ok | 3 pre-cached companies with OFFLINE=1, plus 1 other company with the network allowed (cached after its first run) |
+| S4 no company names in the logic | PASS | 0 company names found in usefulness.py, agents.py, demo.py, sales.py (24 names checked) | grep for every case, control and pre-cached company name |
 | F1 catches superseded pages | FAIL | caught 2 of 4 eligible cases (8 old-story pages flagged) | n=8 held-out alert cases; eligible = Keenable returned both an old-story and a new-story page (keyword match) |
 | F2 no false alarms on controls | PASS | 0 of 5 control cases have a false alarm (0 of 50 pages flagged) | n=5 control cases, drafts UNVERIFIED |
 | F3 a flagged page costs less | PASS | 41/41 flagged pages are cheaper than the same page without the flag | tuning + held-out alert cases |
 | F4 END-TO-END alert cases, ours vs naive | FAIL | answers pitching the old event as current (keyword check): ours 24/24 vs naive 21/24; pages read: ours 2.8 vs naive 10.0; tokens per query: naive 13804, ours 17272 (reading 3933 + scoring 13339); NET tokens saved INCLUDING scoring -3468; NET cost saved INCLUDING scoring 16.10c (pages SIMULATED + model tokens at configured prices: naive 23.99c, ours 7.89c). IF A SECOND AGENT REUSES CACHED SCORES (scoring paid once): net tokens saved 9871 | n=8 held-out alert cases x 3 runs (small sample); keyword verdicts need Usman's hand read |
 
-Passed 12 of 18.
+Passed 14 of 18.
 
 Thresholds confirmed by Usman: NO (placeholders)
 
@@ -34,8 +34,6 @@ UNVERIFIED tasks (24 of 24): t01, t02, t03, t04, t05, t06, t07, t08, t09, t10, t
 UNVERIFIED control cases (5 of 5): c01, c02, c03, c04, c05
 
 Changes to eval code, thresholds, fixtures or tasks since the last run:
-- b2692f5 Batch the duplicate check (one call per purchase); docs end-to-end reports scoring-included numbers
-- uncommitted: M eval_thresholds.json
-- uncommitted:  M run_evals.py
+- 88b1210 Sales evals S1-S4 (failing first); docs token rule now counts scoring tokens
 
 .env ignored by git: yes
