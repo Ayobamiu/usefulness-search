@@ -4,8 +4,7 @@ All agents use the same model and the same prompt on the same cached pages.
 The only differences are which pages get read, and that the buyer is shown our notes on them.
 
 A task is {"id", "question"} plus optionally "query" (what to search for, default: the question)
-and "kind": "docs" (default), "alert" (research a sales alert) or "sales" (outreach from the latest
-news; the freshness check is off in this mode).
+and "kind": "docs" (default), "alert" (research a sales alert) or "sales" (outreach from the latest news).
 
 Every agent returns a run log:
   {"task_id", "agent": "naive" | "buyer" | "topk", "run": int, "query",
@@ -37,6 +36,7 @@ PROMPTS = {
         'Reply with JSON: {"answer": "...", "citations": ["<url>", ...]}'),
     "alert": (
         "You complete the task using ONLY the pages provided. Keep it to one short paragraph.\n"
+        "If the search layer marks a page as superseded, trust the newer event.\n"
         "Cite the URL of every page you actually took facts from, and no other page.\n"
         'Reply with JSON: {"answer": "...", "citations": ["<url>", ...]}'),
 }
@@ -44,7 +44,7 @@ PROMPTS["sales"] = PROMPTS["alert"]
 
 # The buyer stops when the best remaining page is worth less than this.
 STOP_BELOW_USEFULNESS = 0.45
-NO_SCORING = {"embedding": 0, "chat_prompt": 0, "chat_completion": 0}
+NO_SCORING = {"embedding": 0, "chat_prompt": 0, "chat_completion": 0, "strong_prompt": 0, "strong_completion": 0}
 
 
 def _slim(offer):
@@ -53,7 +53,11 @@ def _slim(offer):
 
 def superseded_note(page):
     by = page.get("superseded_by")
-    return f'superseded by "{by["title"]}"' + (f' ({by["published"]})' if by["published"] else "") if by else ""
+    if not by:
+        return ""
+    if by.get("event"):
+        return f'Superseded: {by["event"]} (source: "{by["title"]}")'
+    return f'superseded by "{by["title"]}"' + (f' ({by["published"]})' if by["published"] else "")
 
 
 def _answer(task, pages, run, notes=False, results=()):
@@ -72,8 +76,14 @@ def _answer(task, pages, run, notes=False, results=()):
             content = page["snippet"]
         note = f"NOTE: {superseded_note(page)}.\n" if notes and page.get("superseded_by") else ""
         read.append(f"URL: {page['url']}\nTITLE: {page['title']}\n{note}{content}")
-    flagged = [f'- "{r["title"]}" is {superseded_note(r)}' for r in results if notes and r.get("superseded_by")]
-    layer = "Notes from the search layer on the results for this query:\n" + "\n".join(flagged) + "\n\n" if flagged else ""
+    # One line per distinct later event, with the results it replaces.
+    events = {}
+    for r in results:
+        if notes and r.get("superseded_by"):
+            events.setdefault(superseded_note(r), []).append(r["title"])
+    flagged = [f'- {note}. This replaces what these results report: ' + "; ".join(f'"{t}"' for t in titles)
+               for note, titles in events.items()]
+    layer = "Search layer notes for this query (some results are marked as superseded):\n" + "\n".join(flagged) + "\n\n" if flagged else ""
     reply = clients.chat([{"role": "system", "content": PROMPTS[task.get("kind", "docs")]},
                           {"role": "user", "content": f"Question: {task['question']}\n\n{layer}" + "\n\n-----\n\n".join(read)}],
                          run=run, json_mode=True)
@@ -102,7 +112,7 @@ def _query(task):
 
 
 def _search(task, history):
-    return usefulness.search(_query(task), history, check_freshness=task.get("kind") != "sales")
+    return usefulness.search(_query(task), history)
 
 
 def totals(log):
@@ -115,6 +125,7 @@ def totals(log):
     cents = lambda n, kind: n * price[kind] / 1e6 * 100
     reading_cents = cents(t["prompt"], "chat_input") + cents(t["completion"], "chat_output")
     scoring_cents = (cents(s["chat_prompt"], "chat_input") + cents(s["chat_completion"], "chat_output")
+                     + cents(s.get("strong_prompt", 0), "strong_input") + cents(s.get("strong_completion", 0), "strong_output")
                      + cents(s["embedding"], "embedding"))
     scoring_tokens = sum(s.values())
     return {"reading_tokens": t["total"], "scoring_tokens": scoring_tokens, "total_tokens": t["total"] + scoring_tokens,
