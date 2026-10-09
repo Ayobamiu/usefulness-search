@@ -12,5 +12,14 @@
     "chat_input": 0.15,
     "chat_output": 0.6,
     "embedding": 0.02
-  }
+  },
+  "precached_companies": [
+    "Nvidia",
+    "Stripe",
+    "Figma",
+    "Databricks",
+    "Shopify"
+  ],
+  "s3_online_company": "Airbnb",
+  "demo_sales_company": "Windsurf (the AI coding tool company)"
 }

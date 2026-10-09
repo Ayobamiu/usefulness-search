@@ -1,4 +1,33 @@
-# Demo query candidates
+# Demo candidates
+
+## Sales demo case
+
+All 15 companies in the case list were checked (see experiments/sales_results.md).
+Rule: both agents' answers are "current" by the keyword check. Among those: largest cost saved, scoring included.
+
+**Chosen: Windsurf (the AI coding tool company)**
+
+| company | naive | ours | cost saved (simulated) | qualifies |
+|---|---|---|---|---|
+| Humane (the AI hardware startup) | stale | current | 17.87c | no |
+| Builder.ai | current | current | 15.16c | yes |
+| Windsurf (the AI coding tool company) | current | current | 19.42c | yes |
+| Figure AI | other | other | 16.54c | no |
+| Natron Energy | current | other | 18.03c | no |
+| Rad Power Bikes | current | current | 17.93c | yes |
+| Forward (the primary care startup) | current | other | 18.20c | no |
+| Notion | current | current | 13.35c | yes |
+| 80 Acres Farms | current | current | 19.36c | yes |
+| Limitless (formerly Rewind) | current | current | 16.76c | yes |
+| Plenty (the vertical farming company) | current | current | 17.47c | yes |
+| Northvolt | other | other | 15.50c | no |
+| Tools for Humanity (World) | stale | other | 12.39c | no |
+| Lattice (the HR software company) | other | other | 17.27c | no |
+| Scale AI | other | other | 14.98c | no |
+
+This is one example, not the average. The demo's end card shows the means over all companies.
+
+## Docs demo query (backup)
 
 All 18 training tasks were checked. Held-out tasks are never used for the demo.
 Rule: both agents answer correctly, and our top 3 shares at most 1 page with Keenable's top 3.
@@ -26,5 +55,3 @@ Among those: fewest shared pages, then lowest task id. The usage history exclude
 | t21 | 2 | yes | yes | no | Which Redis command, added in 6.2.0, returns the value of a key and deletes the key in one atomic step? |
 | t22 | 2 | yes | yes | no | Which operator, added in TypeScript 4.9, checks that an expression matches a type without changing the expression's inferred type? |
 | t24 | 3 | yes | yes | no | Which flag of aws s3 sync removes files from the destination that no longer exist in the source? |
-
-This is the best-looking example, not the average. The demo's end card shows the held-out average.

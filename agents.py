@@ -4,7 +4,8 @@ All agents use the same model and the same prompt on the same cached pages.
 The only differences are which pages get read, and that the buyer is shown our notes on them.
 
 A task is {"id", "question"} plus optionally "query" (what to search for, default: the question)
-and "kind": "docs" (default) or "alert" (sales alert research).
+and "kind": "docs" (default), "alert" (research a sales alert) or "sales" (outreach from the latest
+news; the freshness check is off in this mode).
 
 Every agent returns a run log:
   {"task_id", "agent": "naive" | "buyer" | "topk", "run": int, "query",
@@ -39,6 +40,7 @@ PROMPTS = {
         "Cite the URL of every page you actually took facts from, and no other page.\n"
         'Reply with JSON: {"answer": "...", "citations": ["<url>", ...]}'),
 }
+PROMPTS["sales"] = PROMPTS["alert"]
 
 # The buyer stops when the best remaining page is worth less than this.
 STOP_BELOW_USEFULNESS = 0.45
@@ -99,6 +101,10 @@ def _query(task):
     return task.get("query", task["question"])
 
 
+def _search(task, history):
+    return usefulness.search(_query(task), history, check_freshness=task.get("kind") != "sales")
+
+
 def totals(log):
     """Tokens and simulated cost for one query, WITH our scoring work counted.
 
@@ -119,7 +125,7 @@ def totals(log):
 def run_naive(task, history, run=0):
     """Reads the top 10 pages in Keenable's order and pays the listed price for each.
     It does not use our scores, so it is not charged for scoring."""
-    results = usefulness.search(_query(task), history)
+    results = _search(task, history)
     left = sorted(results, key=lambda r: r["keenable_rank"])
     purchases = [{**_slim(r), "offers_before": [_slim(o) for o in left[i:]]} for i, r in enumerate(left)]
     return _log(task, "naive", run, results, purchases)
@@ -127,7 +133,7 @@ def run_naive(task, history, run=0):
 
 def run_topk(task, history, budget_cents, run=0):
     """Same-budget baseline: buys in Keenable's order until the next page is unaffordable."""
-    results = usefulness.search(_query(task), history)
+    results = _search(task, history)
     queue = sorted(results, key=lambda r: r["keenable_rank"])
     purchases, left = [], budget_cents
     for i, r in enumerate(queue):
@@ -141,7 +147,7 @@ def run_topk(task, history, budget_cents, run=0):
 def run_buyer(task, history, budget_cents, run=0):
     """Buys in order of usefulness per cent, within the budget. Charged for all scoring it relies on."""
     with clients.metering() as scoring:
-        results = usefulness.search(_query(task), history)
+        results = _search(task, history)
         remaining, bought, purchases, left = list(results), [], [], budget_cents
         while remaining:
             offers = usefulness.reprice_after_purchase(_query(task), remaining, bought)
@@ -149,8 +155,8 @@ def run_buyer(task, history, budget_cents, run=0):
             if not affordable:
                 break
             best = max(affordable, key=lambda o: o["usefulness"] / max(o["price_cents"], 1e-9))
-            if best["usefulness"] < STOP_BELOW_USEFULNESS:
-                break
+            if best["usefulness"] < STOP_BELOW_USEFULNESS and purchases:
+                break                     # the stop rule never leaves the agent with nothing to read
             purchases.append({**_slim(best), "offers_before": [_slim(o) for o in offers]})
             left -= best["price_cents"]
             bought.append(next(r for r in remaining if r["url"] == best["url"]))

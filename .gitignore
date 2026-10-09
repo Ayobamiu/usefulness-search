@@ -6,3 +6,4 @@ cache/
 .eval_last_run
 demo.html
 .claude/
+demo_run.json

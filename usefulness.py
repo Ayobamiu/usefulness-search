@@ -167,13 +167,13 @@ def price_cents(usefulness):
     return round(PRICE_FLOOR_CENTS + PRICE_PER_USEFULNESS_CENTS * usefulness, 4)
 
 
-def search(query, history):
+def search(query, history, check_freshness=True):
     """Keenable's top pages for the query, each as a `result`."""
     pages = [{"url": r["url"], "title": r.get("title") or r["url"],
               "snippet": r.get("snippet") or r.get("description") or "", "keenable_rank": rank,
               "published": published(r)}
              for rank, r in enumerate(clients.keenable_search(query), 1)]
-    replaced = freshness(query, pages) if pages else {}
+    replaced = freshness(query, pages) if pages and check_freshness else {}
     for p in pages:
         p["superseded_by"] = replaced.get(p["url"])
     with ThreadPoolExecutor(len(pages) or 1) as pool:
