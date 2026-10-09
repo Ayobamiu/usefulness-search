@@ -44,7 +44,7 @@ def metering():
     Used to charge our own scoring work (embeddings, checks) against our savings.
     """
     global _meter
-    outer, _meter = _meter, {"embedding": 0, "chat_prompt": 0, "chat_completion": 0}
+    outer, _meter = _meter, {"embedding": 0, "chat_prompt": 0, "chat_completion": 0, "strong_prompt": 0, "strong_completion": 0}
     try:
         yield _meter
     finally:
@@ -134,16 +134,17 @@ def embed(texts):
     return vectors
 
 
-def chat(messages, run=0, json_mode=False):
+def chat(messages, run=0, json_mode=False, model=None):
     """Returns {"content": str, "usage": {...}} with usage taken from the API response.
 
     `run` is part of the cache key only: it lets the 3 repeated held-out runs be
     3 real samples that are each still repeatable from cache.
     """
-    body = {"model": CONFIG["chat_model"], "messages": messages, "temperature": 0}
+    body = {"model": model or CONFIG["chat_model"], "messages": messages, "temperature": 0}
     if json_mode:
         body["response_format"] = {"type": "json_object"}
     response = _cached("openai_chat", {"body": body, "run": run}, lambda: _openai(
         "chat/completions", body))
-    _count(chat_prompt=response["usage"]["prompt_tokens"], chat_completion=response["usage"]["completion_tokens"])
+    kind = "chat" if body["model"] == CONFIG["chat_model"] else "strong"   # the stronger model is priced separately
+    _count(**{kind + "_prompt": response["usage"]["prompt_tokens"], kind + "_completion": response["usage"]["completion_tokens"]})
     return {"content": response["choices"][0]["message"]["content"], "usage": response["usage"]}

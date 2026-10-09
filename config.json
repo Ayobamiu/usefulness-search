@@ -11,7 +11,9 @@
     "_note": "List prices as configured here; used only to turn token counts into a simulated cost.",
     "chat_input": 0.15,
     "chat_output": 0.6,
-    "embedding": 0.02
+    "embedding": 0.02,
+    "strong_input": 2.5,
+    "strong_output": 10.0
   },
   "precached_companies": [
     "Nvidia",
@@ -21,5 +23,11 @@
     "Shopify"
   ],
   "s3_online_company": "Airbnb",
-  "demo_sales_company": "Windsurf (the AI coding tool company)"
+  "demo_sales_company": "Windsurf (the AI coding tool company)",
+  "freshness_model": "gpt-4o",
+  "answer_models": {
+    "_note": "Answering model per task kind, the same for every agent. Kinds not listed use chat_model.",
+    "alert": "gpt-4o",
+    "sales": "gpt-4o"
+  }
 }

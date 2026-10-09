@@ -2,7 +2,7 @@
 
 Shapes:
   page    {"url", "title", "snippet", "published": "YYYY-MM-DD" or "" (a hint only),
-           "superseded_by": None or {"url", "title", "published"}}
+           "superseded_by": None or {"url", "title", "published", "event"}}
   result  page + {"keenable_rank": int (1 = Keenable's top), "usefulness": float in [0, 1],
                   "price_cents": float >= 0 (SIMULATED), "is_new": bool}
   history {"pages": {url: {"fetched": n, "cited": n}}, "domains": {domain: {"fetched": n, "cited": n}}}
@@ -57,15 +57,20 @@ DUPLICATE_PROMPT = (
 DUPLICATE_SNIPPET_CHARS = 400   # keeps the check cheap: it is charged against our savings
 
 FRESHNESS_PROMPT = (
-    "Below are numbered search results for one query about a company. Which pages report an event about that "
-    "company that a LATER page in this set replaces or reverses? Examples: a product launch, then its shutdown; "
-    "a deal, then its collapse; an appointment, then that person's exit; an expansion, then a bankruptcy.\n"
-    "Rules: flag a page only when another page IN THIS SET reports the later event. A later page that continues, "
-    "confirms or completes the earlier event does not replace it. Do not judge whether anything is true in "
-    "general. Publish dates are a hint only: old stories get republished with new dates, so decide from what "
-    "the pages say happened.\n"
-    'Reply with JSON: {"superseded": [{"page": <number>, "by": <number of the later page>}]} '
-    "(an empty list if none).")
+    "Below are numbered search results for one query about a company. Find every page whose main news about "
+    "that company is no longer the current state of affairs, because ANOTHER page in this set reports a later "
+    "event that replaces or reverses it. Examples: a product launch, then the product is shut down; a deal, "
+    "then the deal collapses; an executive is appointed, then leaves; an expansion or funding round, then a "
+    "bankruptcy or closure; a partnership, then its end.\n"
+    "Rules:\n"
+    "- Flag a page only when another page IN THIS SET reports the later event. Name that page in \"by\".\n"
+    "- A page that itself reports the later event is never flagged, even if it also retells the earlier one.\n"
+    "- A later page that continues, confirms or completes the earlier event does not replace it.\n"
+    "- Do not judge whether anything is true in general, and do not use outside knowledge.\n"
+    "- Publish dates are a hint only: old stories get republished with new dates. Decide from what the pages "
+    "say happened and when.\n"
+    'Reply with JSON: {"superseded": [{"page": <number>, "by": <number of the later page>, '
+    '"later_event": "<the later event and when it happened, at most 15 words>"}]} (an empty list if none).')
 
 CHECK_PROMPT = (
     "You judge search results for a coding question. Given the question and one result's "
@@ -135,11 +140,12 @@ def published(result):
 
 
 def freshness(query, pages):
-    """One model call per result set. {url: the later page that replaces it} for superseded pages."""
+    """One call per result set, on the stronger freshness model. {url: the later page and event that replace it}."""
     listing = "\n\n".join(f"[{i}] {p['title']}\npublished: {p.get('published') or 'unknown'}\n{p['snippet'][:600]}"
                            for i, p in enumerate(pages, 1))
     reply = clients.chat([{"role": "system", "content": FRESHNESS_PROMPT},
-                          {"role": "user", "content": f"Query: {query}\n\n{listing}"}], json_mode=True)
+                          {"role": "user", "content": f"Query: {query}\n\n{listing}"}], json_mode=True,
+                         model=clients.CONFIG["freshness_model"])
     superseded = {}
     for item in json.loads(reply["content"]).get("superseded", []):
         try:
@@ -147,7 +153,8 @@ def freshness(query, pages):
         except (KeyError, ValueError, TypeError, IndexError):
             continue
         if old is not new:
-            superseded[old["url"]] = {k: new.get(k, "") for k in ("url", "title", "published")}
+            superseded[old["url"]] = {**{k: new.get(k, "") for k in ("url", "title", "published")},
+                                      "event": str(item.get("later_event", ""))[:200]}
     # A page cannot be replaced by a page that is itself replaced by it.
     return {url: by for url, by in superseded.items() if superseded.get(by["url"], {}).get("url") != url}
 
