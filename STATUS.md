@@ -217,3 +217,17 @@ Keep rule for attempt 3: alert tuning beats naive (yes, 3 vs 4); sales fewer sta
 F2 passes (yes); original evals E1 to E9 pass (yes). One condition fails by one answer, so not merged.
 Demo companies were NOT re-cached. On the branch S3 fails offline for that reason only.
 Not done: no tuning after the held-out run; the 16 vs 15 answers have not been read by hand.
+
+## 2026-10-09: PR #2 merged into main by Usman's instruction. 16 of 18 evals pass.
+- `main` now has: gpt-4o freshness call, event notes, shared prompt line, freshness on in sales mode, gpt-4o
+  answering model for alert and sales tasks (docs stay on gpt-4o-mini). PR #1 (old README) closed.
+- Demo companies re-cached live (Nvidia, Stripe, Figma, Databricks, Shopify, Airbnb): all ran, 0 to 27 s.
+- Demo cases re-picked: sales stays Windsurf; docs backup moved from t16 to t18 (t16 no longer qualifies:
+  our agent now gets it wrong). `config.json` and `demo_candidates.md` updated.
+- Evals: E1 to E9, S1 to S4, F1 to F3 pass. FAIL: docs END-TO-END (token rule with scoring: 20,819 vs 18,829)
+  and F4 (alert held-out stale answers ours 16/24 vs naive 15/24).
+- Sales, n=15: current ours 11 vs naive 10; stale 1 vs 2; other 3 vs 3; cost 10.30c vs 26.61c;
+  tokens 19,539 (4,865 reading + 14,673 scoring) vs 14,067.
+- README numbers updated to match.
+Waiting on Usman: read `experiments/sales_results.md` and the held-out alert answers; approve README; video link;
+verify tasks, controls, thresholds.

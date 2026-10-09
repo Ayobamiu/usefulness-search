@@ -29,6 +29,7 @@ usefulness = baseline
            + a cheap model check: does this snippet answer the query?
            + the search engine's own rank
            + how often this page, and its domain, were cited when read before
+           x 0.5 if a later page in the same results replaces this page's news
 price      = floor + rate x usefulness            (simulated cents)
 ```
 
@@ -55,25 +56,24 @@ repository, so a fresh clone makes live calls on its first run.
 
 ## Eval numbers
 
-From `python3 run_evals.py` ([eval_report.md](eval_report.md)). 14 of 18 evals pass. Token and cost
+From `python3 run_evals.py` ([eval_report.md](eval_report.md)). 16 of 18 evals pass. Token and cost
 figures always include our own scoring work.
 
-**Sales research, 15 companies, 1 run each**
+**Sales research, 15 companies, 1 run each** (both agents answer with gpt-4o)
 
 | | Reads the top 10 | Ours |
 |---|---|---|
-| Pages read per query | 10.0 | 2.9 |
-| Cost per query (simulated page prices + model tokens) | 25.07c | 8.38c |
-| Tokens per query | 14,054 | 17,132 (4,574 reading + 12,559 scoring) |
-| Tokens if a second agent reuses the cached scores | 14,054 | 4,574 |
-| Answers reflecting the company's latest event (keyword check) | 9 | 8 |
-| Answers pitching an outdated event (keyword check) | 2 | 0 |
-| Answers matching neither keyword list | 4 | 7 |
+| Answers reflecting the company's latest event (keyword check) | 10 | 11 |
+| Answers pitching an outdated event (keyword check) | 2 | 1 |
+| Answers matching neither keyword list | 3 | 3 |
+| Pages read per query | 10.0 | 3.1 |
+| Cost per query (simulated page prices + model tokens) | 26.61c | 10.30c |
+| Tokens per query | 14,067 | 19,539 (4,865 reading + 14,673 scoring) |
+| Tokens if a second agent reuses the cached scores | 14,067 | 4,865 |
 
-So: about a third of the cost, more tokens unless scores are reused, and quality that is close but
-**not equal**. Our own eval for "no worse than reading everything" fails by one answer on the keyword
-check, and reading the answers shows at least two companies where our agent missed a shutdown that the
-read-everything agent caught. The answers are in
+So: slightly better answers at well under half the cost, and more tokens unless scores are reused. The
+quality difference is one answer in each direction on a keyword check over 15 companies, so read it as
+"at least as good", not as a proven gain. The answers are in
 [experiments/sales_results.md](experiments/sales_results.md).
 
 **Coding-docs questions, 6 held-out tasks, 3 runs each (small sample)**
@@ -81,8 +81,8 @@ read-everything agent caught. The answers are in
 | | Reads the top 10 | Ours |
 |---|---|---|
 | Correct answers | 100% | 100% |
-| Spend on pages (simulated) | 27.26c | 9.15c |
-| Tokens per task | 18,829 | 20,698 (6,134 reading + 14,564 scoring) |
+| Spend on pages (simulated) | 26.39c | 9.11c |
+| Tokens per task | 18,829 | 20,819 (6,138 reading + 14,682 scoring) |
 | Ranking vs Keenable, precision@3 | 0.500 | 0.500 (a tie) |
 
 Against a simpler baseline, reading Keenable's top pages up to the same budget, we tie on correctness
@@ -90,20 +90,28 @@ and spend.
 
 **What fails, plainly**
 
-- The docs "fewer tokens" eval fails once scoring tokens are counted (20,698 vs 18,829).
-- The sales quality eval fails as described above.
-- Two evals for the unfinished freshness check fail (next section).
+- The docs "fewer tokens" eval fails once scoring tokens are counted (20,819 vs 18,829).
+- The alert end-to-end eval fails by one answer (next section).
 
-**Not yet verified:** the tasks, control cases and eval thresholds are drafts not yet confirmed by a human.
+**Not yet verified:** the tasks, control cases and eval thresholds are drafts not yet confirmed by a human,
+and the keyword verdicts have not all been read by hand.
 
-## Research finding: agents pitch outdated news
+## Freshness: agents pitch outdated news
 
 When an agent is told about an old event ("Builder.ai named a new CEO") and asked to write outreach, it
 pitched that event as current on 4 of 7 cases, even though the newer story (insolvency, shutdown) was
-among the pages it read. Adding "check whether newer news contradicts the alert" to the prompt did not
-fix it, and neither did gpt-4o. With perfect flags on the outdated pages the count fell to 2 of 7.
-Automatic detection is next: our first version catches 2 of 4 eligible held-out cases and is not yet
-good enough to change the agent's answer, so it is switched off in the sales demo.
+among the pages it read. A prompt sentence did not fix it, and neither did a stronger model on its own.
+
+The freshness check is our response. One gpt-4o call per result set finds pages whose news a later page
+in the same results replaces or reverses. Those pages lose half their usefulness, so their price drops,
+and our agent is told the later event in one line ("Superseded: Forward shut down November 2024").
+
+- Detection: 4 of 4 eligible held-out cases caught, 0 false alarms on 5 control cases.
+- On the 7 cases it was tuned on, our agent pitched the old event 3 times against 4 for the agent that
+  reads everything.
+- On 8 held-out cases (3 runs each) it does not yet help: 16 of 24 stale answers against 15 of 24.
+
+So detection works and the agent still does not always act on it. That is the open problem.
 
 ## Files
 

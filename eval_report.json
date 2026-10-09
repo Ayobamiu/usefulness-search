@@ -73,8 +73,8 @@
  },
  {
   "eval": "S3 live company query runs",
-  "passed": false,
-  "numbers": "1/4 ran end to end under 90s; Nvidia (offline): 0s FAILED or fell back; Stripe (offline): 0s FAILED or fell back; Figma (offline): 0s FAILED or fell back; Airbnb (online allowed): 6s ok",
+  "passed": true,
+  "numbers": "4/4 ran end to end under 90s; Nvidia (offline): 0s ok; Stripe (offline): 0s ok; Figma (offline): 0s ok; Airbnb (online allowed): 0s ok",
   "notes": "3 pre-cached companies with OFFLINE=1, plus 1 other company with the network allowed (cached after its first run)"
  },
  {
