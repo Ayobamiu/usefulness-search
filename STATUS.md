@@ -164,3 +164,34 @@ Waiting on Usman:
 - Read `experiments/sales_results.md` and confirm or correct the verdicts.
 - Decide the pitch wording given S1 (see chat), and whether to do Step 5 anyway.
 - Approve README.md, add the video link, say when to push and what to do with PR #1.
+
+## Freshness attempt 2 (2026-10-08 night): NOT kept. `main` is back at 5d8f71f (plus this note).
+Tried all three together: gpt-4o for the one freshness call, notes that state the later event, the shared prompt
+line "If the search layer marks a page as superseded, trust the newer event." (added to the alert/sales prompt
+only; the docs prompt was left alone), freshness ON in sales mode. The work is saved on the local branch
+`freshness-gpt4o-attempt`, not merged.
+
+| Measure (keyword verdicts) | Before (5d8f71f) | After (attempt) |
+|---|---|---|
+| Alert tuning, stale answers, n=7 | ours 5, naive 4 | ours 3, naive 4 |
+| Sales, n=15: current | ours 8, naive 9 | ours 7, naive 9 |
+| Sales, n=15: stale | ours 0, naive 2 | ours 1, naive 2 |
+| Sales, n=15: other | ours 7, naive 4 | ours 7, naive 4 |
+| Alert held-out, stale answers, n=8 x 3 runs (run once) | ours 24/24, naive 21/24 | ours 21/24, naive 21/24 |
+| F1 detection on held-out, eligible cases caught | 2 of 4 | 4 of 4 |
+| F2 false alarms on controls, n=5 | 0 | 0 |
+| Sales cost per query, scoring included | ours 8.38c, naive 25.07c | ours 8.99c, naive 23.12c |
+| Sales tokens per query, scoring included | ours 17,132, naive 14,054 | ours 19,490, naive 14,083 |
+
+Keep rule: beat naive on alert tuning (yes, 3 vs 4) AND on sales with fewer stale and at least as many current
+(NO: 7 current vs naive 9) AND held-out not worse (yes, tie) AND F2 passes (yes). One condition fails, so rolled back.
+
+What the attempt showed:
+- Detection is solved by gpt-4o: clean flags and clear event notes ("Forward shut down November 2024"), F1 4 of 4.
+- The answering model (gpt-4o-mini) is the bottleneck. With the note in front of it, it fixed Humane, Builder.ai and
+  Rad Power Bikes on the alert tuning cases but still pitched the old event for Forward and Natron.
+- Grouping the notes by event (one line per later event) mattered: before that, ours was stale on 5 of 7.
+- In sales mode, turning freshness on moved answers around without a net gain (Natron and Forward became current;
+  Rad Power Bikes and Notion became "other"; Plenty became stale for both agents).
+- Side effect seen during the attempt: the prompt change invalidated the pre-cached companies, so S3 failed offline.
+  Not an issue after the rollback.
