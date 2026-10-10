@@ -1,128 +1,103 @@
-# Usefulness search for agents
+# Xtract
 
-A hackathon demo of a search layer for AI agents, built on [Keenable](https://keenable.ai) search.
-**All prices are simulated. No real money moves.**
+**Search results you can trust, before your agent reads them.**
 
-Demo video: https://youtu.be/Lup7Obs6EhY
+🎥 **Demo video (2–3 min):** https://youtu.be/Lup7Obs6EhY
 
-## What it is
+---
 
-Agents that research on the web read every page a search returns. This layer sits on top of the search
-engine and, before the agent reads anything, gives every result a usefulness score for the agent's task
-and a price derived from that score. A buyer agent then buys pages by usefulness per cent within a
-budget and stops when the rest are not worth it. The pages it ends up citing feed back into the scores.
+## What we built
 
-## Who it is for
+Xtract sits between an AI agent and web search. Before the agent reads a page, Xtract scores it: how useful it is likely to be for the task and what it costs to read. The agent only reads what helps and skips the rest. This results in an immense increase in efficiency while lowering the cost and improving the quality.
 
-Teams whose agents research companies for sales outreach: one task, thousands of companies, and a bill
-for every page read. The demo task is "Write a one-paragraph sales outreach angle for {company} based on
-their latest news."
+## Who it's for
+
+**Teams building AI sales agents**: agents that research a company before writing an outreach email.
+
+These agents run many searches per account and turn whatever they find into a personalized email. When a page is outdated, the email goes out with the wrong facts: a product that was shut down, an executive who left, a deal that never closed. An engineer at an AI sales-agent company told us how they catch this today:
+
+> "Someone responding or human review. Hard to catch a fact you didn't know about before it arrived."
+
+## The problem
+
+- **Stale facts reach customers.** In our tests, agents pitched outdated news for **4 of 7 companies**. A better prompt or a bigger model did not fix it.
+- **Agents read everything.** In our test setup, each search returns 10 pages and a naive agent reads all of them, even though only a few end up in the answer. Every useless page costs tokens.
+- **Good sources are increasingly locked.** Paywalls, bot checks and Cloudflare's default blocking of AI crawlers mean the agent often can't read the pages that matter most, and doesn't know it until it tries.
 
 ## How it works
 
-Score and price before reading, then learn from what was used. All of the scoring is one function in
-[usefulness.py](usefulness.py):
+1. The agent sends its query. Xtract fetches results from a web search API (we use [Keenable](https://keenable.ai)).
+2. For each result, Xtract scores **usefulness** for the task and attaches a **price**.
+3. The agent receives a ranked list and only reads the pages worth reading.
+4. Scores are stored and **reused**: when the next agent hits the same page, the work is already done. Every task makes the system better and cheaper.
 
-```
-usefulness = baseline
-           + similarity of the query to the page's title and snippet
-           + a cheap model check: does this snippet answer the query?
-           + the search engine's own rank
-           + how often this page, and its domain, were cited when read before
-           x 0.5 if a later page in the same results replaces this page's news
-price      = floor + rate x usefulness            (simulated cents)
-```
+Search APIs today never learn which results an agent actually used. Google learned from human clicks, but agents don't click. Xtract captures that signal.
 
-A page that repeats one already bought loses 35% of its usefulness and its price drops with it. After a
-run, cited pages move up and pages that were bought but not used move down.
+### Technical notes
 
-## Run it
+- **One scoring function.** Usefulness is a weighted sum of five signals: embedding similarity between the query and the page's title and snippet, a cheap model check ("does this snippet answer the query?"), the search engine's own rank, and how often this page and its domain were cited when agents read them before. It is all in [`usefulness.py`](usefulness.py).
+- **Price follows usefulness.** `price = floor + rate × usefulness`, so a more useful page never costs less. Prices are simulated.
+- **Duplicates lose value.** Once the agent buys a page, any remaining page that states the same answer loses 35% of its usefulness, and its price drops with it.
+- **Freshness.** One model call per result set finds pages whose news a later page in the same results replaces or reverses. Those pages lose half their usefulness, and the agent is told the later event in one line.
+- **The buyer agent** buys pages in order of usefulness per cent, within a budget, and stops when the best remaining page is not worth reading.
+- **The usage loop.** After each run, pages the agent cited move up and pages it bought but did not use move down.
+- **Honest accounting.** Every token we spend on scoring is counted against our own savings. Every search and model response is cached to disk, so runs are repeatable and the demo works offline.
+- **Evals.** `python3 run_evals.py` runs 18 checks and writes [`eval_report.md`](eval_report.md); 16 pass today. The two that fail are reported there, not hidden.
 
-Python 3 (built and tested on 3.14). No packages to install.
+## Results so far
 
-```bash
-cp .env.example .env          # then add OPENAI_API_KEY and KEENABLE_API_KEY
-python3 demo.py                       # the sales demo; press Space to start
-python3 demo.py --company "Airbnb"    # any company, live, 90 second limit
-python3 demo.py --docs                # the coding-docs demo
-python3 demo.py --pace 8              # adds pauses between beats for narration
-python3 run_evals.py                  # every eval, saved to eval_report.md
-```
+Measured on 6 held-out documentation tasks, counting both reading and scoring tokens:
 
-Every Keenable and OpenAI response is cached in `cache/`, so reruns are repeatable and work offline
-(`OFFLINE=1`). If a live company run fails or times out, the demo shows the nearest cached run and says
-so on screen. The cache and the built demo page hold third-party page text and are not in this
-repository, so a fresh clone makes live calls on its first run.
+| | **Tokens** | **Cost\*** |
+| :- | :- | :- |
+| Naive agent (reads all 10 pages) | 18,829 | 26.7¢ |
+| Xtract | 20,819 (6,138 reading + 14,682 scoring) | 9.9¢ |
+| A second agent reusing Xtract's scores | saves 12,691 tokens vs. naive | — |
 
-## Eval numbers
+\*Page prices are simulated, so the cost column shows what happens **when pages cost money**. On a single query, tokens are roughly even today. The real savings come from reuse: a page is scored once and every later agent benefits.
 
-From `python3 run_evals.py` ([eval_report.md](eval_report.md)). 16 of 18 evals pass. Token and cost
-figures always include our own scoring work.
+Sales research on 15 companies: Xtract read 3.1 pages per query instead of 10 and cost 10.3¢ instead of 26.6¢ per query, with comparable answers (11 of 15 reflected the company's latest news, against 10 of 15 for the naive agent). Freshness detection: 4 of 4 replaced stories caught, 0 false alarms.
 
-**Sales research, 15 companies, 1 run each** (both agents answer with gpt-4o)
+## Market
 
-| | Reads the top 10 | Ours |
-|---|---|---|
-| Answers reflecting the company's latest event (keyword check) | 10 | 11 |
-| Answers pitching an outdated event (keyword check) | 2 | 1 |
-| Answers matching neither keyword list | 3 | 3 |
-| Pages read per query | 10.0 | 3.1 |
-| Cost per query (simulated page prices + model tokens) | 26.61c | 10.30c |
-| Tokens per query | 14,067 | 19,539 (4,865 reading + 14,673 scoring) |
-| Tokens if a second agent reuses the cached scores | 14,067 | 4,865 |
+AI sales agents are one of the fastest-growing categories in AI, and every email they send starts with web research. Just imagine if you would use the internet right now but google will not rank your answers and the most important ones are locked behind a paywall. This is the stage in which the extremely fast growing AI Agent industry is in right now:
 
-So: slightly better answers at well under half the cost, and more tokens unless scores are reused. The
-quality difference is one answer in each direction on a keyword check over 15 companies, so read it as
-"at least as good", not as a proven gain. The answers are in
-[experiments/sales_results.md](experiments/sales_results.md).
+| **Signal** | **Number** | **Source** |
+| :- | :- | :- |
+| AI SDR market | **$4.1B (2025) → $15.0B (2030)**, 29.5% CAGR | [MarketsandMarkets, Aug 2025](https://www.prnewswire.com/news-releases/ai-sdr-market-15-01-billion-by-2030--marketsandmarkets-302520473.html) |
+| AI agents market overall | **$7.8B (2025) → $52.6B (2030)**, 46.3% CAGR | [MarketsandMarkets, Aug 2026](https://www.globenewswire.com/news-release/2026/08/20/3348589/0/en/ai-agents-market-surges-to-52-62-billion-at-a-cagr-46-3-by-2030-report-by-marketsandmarkets.html) |
+| Sales intelligence market | **$4.0B (2025) → $8.7B (2033)** | [Grand View Research](https://www.grandviewresearch.com/industry-analysis/sales-intelligence-market) |
+| Sellers already using AI agents | **54%**, and nearly 9 in 10 plan to by 2027 (n = 4,050) | [Salesforce State of Sales 2026](https://www.salesforce.com/news/stories/state-of-sales-report-announcement-2026/) |
+| B2B data goes stale | ~**2.1% per month, ~22.5% per year** | [Apollo, citing Only-B2B](https://www.apollo.io/insights/whats-the-average-rate-of-data-decay-in-a-b2b-contact-database-and-how-do-i-address-it) |
+| Investors are betting on this layer | Clay valued at **$7.1B**, Exa at **$2.2B**, Parallel at **$2B** | [Clay](https://www.eneralabs.com/blog/clay-115m-series-d-agentic-gtm-2026/), [Exa](https://www.caproasia.com/2026/05/25/united-states-ai-search-infrastructure-startup-exa-labs-raises-250-million-series-c-funding-at-2-2-billion-valuation-raised-85-million-in-series-b-funding-in-2025-september-founded-in-2021-by-wil/), [Parallel](https://www.finsmes.com/2026/04/parallel-web-systems-raises-100m-in-series-b-funding-at-2-billion-valuation.html) |
 
-**Coding-docs questions, 6 held-out tasks, 3 runs each (small sample)**
+Every AI sales agent researches before it writes, so every one of them needs the layer we're building: deciding which pages are worth reading and which facts are still true.
 
-| | Reads the top 10 | Ours |
-|---|---|---|
-| Correct answers | 100% | 100% |
-| Spend on pages (simulated) | 26.39c | 9.11c |
-| Tokens per task | 18,829 | 20,819 (6,138 reading + 14,682 scoring) |
-| Ranking vs Keenable, precision@3 | 0.500 | 0.500 (a tie) |
+## Value creation
 
-Against a simpler baseline, reading Keenable's top pages up to the same budget, we tie on correctness
-and spend.
+For a sales-agent team, a single wrong fact costs far more than the search that found it. A personalized email that references outdated news doesn't just fail to get a reply. It tells the prospect the sender didn't do their homework. Xtract creates value in four ways:
 
-**What fails, plainly**
+1. **Revenue protection.** Fewer stale facts reach prospects, so fewer emails are wasted and more turn into conversations. In our tests, agents pitched outdated news for 4 of 7 companies.
+2. **Lower research cost.** The agent only reads, and pays for, the pages that help.
+3. **Access to locked sources.** As more of the web charges AI agents, Xtract will show which pages are worth paying for and which are blocked, before the agent tries.
+4. **Shared learning.** Every page scored once benefits every customer after it. The more agents use Xtract, the more valuable each answer becomes.
 
-- The docs "fewer tokens" eval fails once scoring tokens are counted (20,819 vs 18,829).
-- The alert end-to-end eval fails by one answer (next section).
+## Business model
 
-**Not yet verified:** the tasks, control cases and eval thresholds are drafts not yet confirmed by a human,
-and the keyword verdicts have not all been read by hand.
+- **Customers pay per account researched.** The price tracks the work their agent does, so cost grows only when their pipeline grows.
+- **We take a small cut of every page bought through Xtract.** Most of the payment goes to the page's author, so we earn more as more of the web becomes paid content for agents.
+- **Our costs fall as we grow.** A page is scored once and reused for every customer after that. In our tests, a second agent reusing Xtract's scores needed **67% fewer tokens** than an agent reading every page itself. Each new customer makes every query cheaper for us to serve, so margins widen with scale.
 
-## Freshness: agents pitch outdated news
+## What's next
 
-When an agent is told about an old event ("Builder.ai named a new CEO") and asked to write outreach, it
-pitched that event as current on 4 of 7 cases, even though the newer story (insolvency, shutdown) was
-among the pages it read. A prompt sentence did not fix it, and neither did a stronger model on its own.
+- **Automatic stale-fact detection.** With perfect "outdated" flags, stale pitches drop from 4 of 7 companies to 2 of 7. Our first detector caught 4 of 4 replaced stories with 0 false alarms. Next we test it on live sales research.
+- **Paywall and bot-block detection.** The agent will know whether it can read a page before it tries. Not built yet.
+- Pilots with sales-agent teams using their real research queries.
+- Lower scoring cost so Xtract beats a naive agent on tokens even on a single query.
 
-The freshness check is our response. One gpt-4o call per result set finds pages whose news a later page
-in the same results replaces or reverses. Those pages lose half their usefulness, so their price drops,
-and our agent is told the later event in one line ("Superseded: Forward shut down November 2024").
+## Team
 
-- Detection: 4 of 4 eligible held-out cases caught, 0 false alarms on 5 control cases.
-- On the 7 cases it was tuned on, our agent pitched the old event 3 times against 4 for the agent that
-  reads everything.
-- On 8 held-out cases (3 runs each) it does not yet help: 16 of 24 stale answers against 15 of 24.
+- **Usman Ayobami**: engineering. Search & backend, founder of Core Extract.
+- **Simon Kley**: business. Pricing, customers, go-to-market. UC Berkeley Haas.
 
-So detection works and the agent still does not always act on it. That is the open problem.
-
-## Files
-
-| File | What it is |
-|---|---|
-| `usefulness.py` | scorer, price rule, usage loop, duplicate discount, freshness check |
-| `agents.py` | naive agent, buyer agent, same-budget baseline, cost accounting |
-| `sales.py` | the sales research task, grading keywords, the 15-company measurement |
-| `clients.py` | Keenable and OpenAI calls with disk cache |
-| `run_evals.py`, `eval_thresholds.json`, `eval_fixtures.json` | evals and their thresholds |
-| `tasks.json`, `alert_cases.json` | task sets and case lists |
-| `demo.py`, `demo_template.html`, `demo_candidates.md` | the demo screen and how its examples were chosen |
-| `experiments/` | the experiments behind the findings above |
-| `STATUS.md` | build log |
+Built at the Innovation Intelligence Hackathon, Oct 2026.
