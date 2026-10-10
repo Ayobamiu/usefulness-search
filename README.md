@@ -4,6 +4,8 @@
 
 🎥 **Demo video (2–3 min):** https://youtu.be/Lup7Obs6EhY
 
+Narration uses an earlier run (8.4c vs 25.1c); current numbers are in Results below.
+
 ---
 
 ## What we built
@@ -57,6 +59,40 @@ Measured on 6 held-out documentation tasks, counting both reading and scoring to
 \*Page prices are simulated, so the cost column shows what happens **when pages cost money**. On a single query, tokens are roughly even today. The real savings come from reuse: a page is scored once and every later agent benefits.
 
 Sales research on 15 companies: Xtract read 3.1 pages per query instead of 10 and cost 10.3¢ instead of 26.6¢ per query, with comparable answers (11 of 15 reflected the company's latest news, against 10 of 15 for the naive agent). Freshness detection: 4 of 4 replaced stories caught, 0 false alarms.
+
+## Run it
+
+You need Python 3 (built and tested on 3.14), an OpenAI API key and a [Keenable](https://keenable.ai) API key. There are no packages to install.
+
+**1. Set up your keys**
+
+```bash
+cp .env.example .env
+```
+
+Then open `.env` and fill in `OPENAI_API_KEY` and `KEENABLE_API_KEY`.
+
+**2. Run the demo**
+
+```bash
+python3 demo.py --live                  # the sales demo (Windsurf); about 20 seconds
+python3 demo.py --company "Airbnb"      # any company you type, live, 90 second limit
+python3 demo.py --docs --live           # the coding-docs demo; several minutes the first time
+```
+
+Each command builds `demo.html` and opens it in your browser. Press **Space** (or the button) to start. Add `--pace 8` for pauses between beats.
+
+Search and model responses are cached in `cache/` as they arrive. The cache holds third-party page text, so it is not in this repository: on a fresh clone the first run of each command calls Keenable and OpenAI. After that you can drop `--live`, and `python3 demo.py` and `python3 demo.py --docs` run offline from the cache. Without `--live` and without a cache they stop with an "OFFLINE=1 and no cached response" error.
+
+**3. Run the evals**
+
+```bash
+python3 run_evals.py
+```
+
+This runs all 18 checks, prints the table and saves it to `eval_report.md`. The first run makes a few thousand cached API calls and takes a while; reruns take seconds.
+
+Page prices are simulated. No real money moves, apart from your own API usage.
 
 ## Market
 
