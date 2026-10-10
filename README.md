@@ -3,7 +3,7 @@
 A hackathon demo of a search layer for AI agents, built on [Keenable](https://keenable.ai) search.
 **All prices are simulated. No real money moves.**
 
-Demo video: _link to be added_
+Demo video: https://youtu.be/Lup7Obs6EhY
 
 ## What it is
 
