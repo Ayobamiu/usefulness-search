@@ -2,7 +2,7 @@
 
 **Search results you can trust, before your agent reads them.**
 
-🎥 **Demo video (2–3 min):** https://youtu.be/Lup7Obs6EhY
+🎥 **Demo video (2 to 3 min):** https://youtu.be/Lup7Obs6EhY
 
 Narration uses an earlier run (8.4c vs 25.1c); current numbers are in Results below.
 
@@ -10,7 +10,7 @@ Narration uses an earlier run (8.4c vs 25.1c); current numbers are in Results be
 
 ## What we built
 
-Xtract sits between an AI agent and web search. Before the agent reads a page, Xtract scores it: how useful it is likely to be for the task and what it costs to read. The agent only reads what helps and skips the rest. This results in an immense increase in efficiency while lowering the cost and improving the quality.
+Xtract sits between an AI agent and web search. Before the agent reads a page, Xtract scores it: how useful it is likely to be for the task and what it costs to read. The agent only reads what helps and skips the rest. This results in an immense increase in efficiency while lowering the cost, with comparable or slightly better answers.
 
 ## Who it's for
 
@@ -22,7 +22,7 @@ These agents run many searches per account and turn whatever they find into a pe
 
 ## The problem
 
-- **Stale facts reach customers.** In our tests, agents pitched outdated news for **4 of 7 companies**. A better prompt or a bigger model did not fix it.
+- **Stale facts reach customers.** In our tests, agents pitched outdated news for **4 of 7 companies** when starting from an outdated alert. A better prompt or a bigger model did not fix it.
 - **Agents read everything.** In our test setup, each search returns 10 pages and a naive agent reads all of them, even though only a few end up in the answer. Every useless page costs tokens.
 - **Good sources are increasingly locked.** Paywalls, bot checks and Cloudflare's default blocking of AI crawlers mean the agent often can't read the pages that matter most, and doesn't know it until it tries.
 
@@ -54,7 +54,7 @@ Measured on 6 held-out documentation tasks, counting both reading and scoring to
 | :- | :- | :- |
 | Naive agent (reads all 10 pages) | 18,829 | 26.7¢ |
 | Xtract | 20,819 (6,138 reading + 14,682 scoring) | 9.9¢ |
-| A second agent reusing Xtract's scores | saves 12,691 tokens vs. naive | — |
+| A second agent reusing Xtract's scores | saves 12,691 tokens vs. naive | - |
 
 \*Page prices are simulated, so the cost column shows what happens **when pages cost money**. On a single query, tokens are roughly even today. The real savings come from reuse: a page is scored once and every later agent benefits.
 
@@ -113,7 +113,7 @@ Every AI sales agent researches before it writes, so every one of them needs the
 
 For a sales-agent team, a single wrong fact costs far more than the search that found it. A personalized email that references outdated news doesn't just fail to get a reply. It tells the prospect the sender didn't do their homework. Xtract creates value in four ways:
 
-1. **Revenue protection.** Fewer stale facts reach prospects, so fewer emails are wasted and more turn into conversations. In our tests, agents pitched outdated news for 4 of 7 companies.
+1. **Revenue protection.** Fewer stale facts reach prospects, so fewer emails are wasted and more turn into conversations. In our tests, agents pitched outdated news for 4 of 7 companies when starting from an outdated alert.
 2. **Lower research cost.** The agent only reads, and pays for, the pages that help.
 3. **Access to locked sources.** As more of the web charges AI agents, Xtract will show which pages are worth paying for and which are blocked, before the agent tries.
 4. **Shared learning.** Every page scored once benefits every customer after it. The more agents use Xtract, the more valuable each answer becomes.
