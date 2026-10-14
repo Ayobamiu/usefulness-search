@@ -1,6 +1,7 @@
 """Server state in Supabase, over plain HTTP to PostgREST. Used only when SUPABASE_URL is set.
 
-The service-role key is read from SUPABASE_SERVICE_KEY and never written to logs or errors.
+The server key is read from SUPABASE_SERVICE_KEY (legacy service-role JWT) or SUPABASE_SECRET_KEY (the newer
+sb_secret_ key), and never written to logs or errors.
 """
 import json
 import os
@@ -15,7 +16,7 @@ def enabled():
 
 
 def _request(method, table, params=None, body=None, prefer=None):
-    key = os.environ["SUPABASE_SERVICE_KEY"]
+    key = os.environ.get("SUPABASE_SERVICE_KEY") or os.environ["SUPABASE_SECRET_KEY"]
     url = os.environ["SUPABASE_URL"].rstrip("/") + "/rest/v1/" + table
     if params:
         url += "?" + urllib.parse.urlencode(params)

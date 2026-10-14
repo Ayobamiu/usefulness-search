@@ -16,5 +16,5 @@ services:
         sync: false
       - key: SUPABASE_URL
         value: https://pxtefalibikzoewluzfu.supabase.co
-      - key: SUPABASE_SERVICE_KEY
+      - key: SUPABASE_SECRET_KEY
         sync: false

@@ -55,7 +55,7 @@ It also flags pages that later news has replaced, so the agent does not repeat a
 <p>Each result has <code>url</code>, <code>title</code>, <code>snippet</code>, <code>keenable_rank</code>,
 <code>usefulness</code> (0 to 1), <code>price_cents</code> <span class="sim">(prices are simulated for now)</span>,
 <code>is_new</code> (no usage history yet) and <code>superseded_by</code> (null, or the later page and event).
-<code>scoring_cost_usd</code> is what our own model calls cost to score this search, at list prices.</p>
+<code>scoring_cost_usd</code> is what our own model calls for scoring this search cost at list prices (reported the same when we answer from cache).</p>
 
 <h2>One real response</h2>
 <p>Query <code>{{EXAMPLE_QUERY}}</code>, run on {{EXAMPLE_DATE}} with no usage history. Not edited.</p>

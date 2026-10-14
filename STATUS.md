@@ -287,3 +287,15 @@ Spec: `hosted_api_spec.md`. Supabase project for later steps: `xtract-api`, ref 
 - Demo companies re-cached on the new models: S3 passes again. Evals now 15 of 18 (E5, docs END-TO-END, F4 fail).
 - NOT tested yet: anything that touches Supabase (keys, search, feedback), because SUPABASE_SERVICE_KEY is not in
   .env. Deploy config: `render.yaml` (free plan, health check /healthz). Needs Usman to connect Render.
+
+## Hosted API, Step 4 tested against Supabase locally (2026-10-14): all paths work. Still NOT deployed.
+- .env holds SUPABASE_SECRET_KEY (new sb_secret_ key); `store.py` accepts it or SUPABASE_SERVICE_KEY. SUPABASE_URL added.
+- Flow on localhost: key created (only the 64-char hash stored); bad key 401; 301-char query 400; search "Humane AI Pin"
+  14 s cold, 10 results, 3 flagged; feedback (Mashable read+cited, Wikipedia read only) returned +0.1667 / -0.1667;
+  search again 2 s from the Supabase cache, Mashable 0.728 -> 0.895 (3.05c -> 3.63c), Wikipedia 0.713 -> 0.547
+  (3.00c -> 2.41c), the other 8 unchanged. Daily limit (set to 2 on the test key) gave 429; 4th key from one IP gave 429.
+- Rows: queries logged with latency and cost; server log has no keys and no traces. Evals still 15 of 18 offline.
+- `scoring_cost_usd` is the list-price cost of the scoring calls even when served from cache (both queries logged
+  $0.006977). The page now says so. Real spend per cached query is near zero.
+- Not tested: the 30 s timeout path.
+- Test data left in Supabase: 3 test keys (Usman's email), 2 queries, page/domain usage for 2 real pages, cache rows.
