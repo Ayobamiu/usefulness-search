@@ -4,6 +4,8 @@ Reruns read from cache/. Set OFFLINE=1 to forbid any network call.
 The API keys are read from .env and never written to cache, logs or errors.
 """
 import contextlib
+import contextvars
+import datetime
 import hashlib
 import json
 import os
@@ -13,6 +15,8 @@ import time
 import urllib.error
 import urllib.parse
 import urllib.request
+
+import store
 
 ROOT = pathlib.Path(__file__).parent
 CACHE = ROOT / "cache"
@@ -33,7 +37,8 @@ def load_env():
 load_env()
 
 
-_meter = None
+# A context variable, not a global, so concurrent server requests each count their own tokens.
+_meter = contextvars.ContextVar("meter", default=None)
 _meter_lock = threading.Lock()
 
 
@@ -43,24 +48,55 @@ def metering():
 
     Used to charge our own scoring work (embeddings, checks) against our savings.
     """
-    global _meter
-    outer, _meter = _meter, {"embedding": 0, "chat_prompt": 0, "chat_completion": 0, "strong_prompt": 0, "strong_completion": 0}
+    meter = {"embedding": 0, "chat_prompt": 0, "chat_completion": 0, "strong_prompt": 0, "strong_completion": 0}
+    token = _meter.set(meter)
     try:
-        yield _meter
+        yield meter
     finally:
-        _meter = outer
+        _meter.reset(token)
 
 
 def _count(**tokens):
-    if _meter is not None:
+    meter = _meter.get()
+    if meter is not None:
         with _meter_lock:
             for kind, n in tokens.items():
-                _meter[kind] += n
+                meter[kind] += n
+
+
+# Set by server.py when SUPABASE_URL is set. The evals never set it, so they keep using cache/ and
+# still run offline even if .env holds the Supabase variables.
+USE_SUPABASE_CACHE = False
+
+# Hosted API only: search results go stale (news), so they are refetched after this long.
+SUPABASE_CACHE_TTL_SECONDS = {"keenable_search": 24 * 3600}
+
+
+def _cached_supabase(service, key, call):
+    rows = store.select("api_cache", {"service": f"eq.{service}", "request_hash": f"eq.{key}",
+                                      "select": "response,created_at"})
+    ttl = SUPABASE_CACHE_TTL_SECONDS.get(service)
+    if rows and not (ttl and time.time() - _epoch(rows[0]["created_at"]) > ttl):
+        return rows[0]["response"]
+    response = call()
+    store.upsert("api_cache", [{"service": service, "request_hash": key, "response": response,
+                                "created_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())}],
+                 "service,request_hash")
+    return response
+
+
+def _epoch(timestamp):
+    return datetime.datetime.fromisoformat(timestamp).timestamp()
 
 
 def _cached(service, request, call):
-    """Return the cached response for this request, or make the call and cache it."""
+    """Return the cached response for this request, or make the call and cache it.
+
+    In Supabase for the hosted API (USE_SUPABASE_CACHE), else on disk in cache/ (the evals).
+    """
     key = hashlib.sha256(json.dumps([service, request], sort_keys=True).encode()).hexdigest()
+    if USE_SUPABASE_CACHE:
+        return _cached_supabase(service, key, call)
     path = CACHE / service / f"{key}.json"
     if path.exists():
         return json.loads(path.read_text())["response"]

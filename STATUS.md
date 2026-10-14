@@ -267,3 +267,23 @@ Spec: `hosted_api_spec.md`. Supabase project for later steps: `xtract-api`, ref 
 - Sales: current 10 vs 8, stale 0 vs 1, other 5 vs 6, cost 10.65c vs 29.98c, tokens 21,424 vs 14,065 (was 21,383:
   the new checks were real calls; verdicts that matter did not change, so the bought pages and answers are identical).
 - No tuning done.
+
+## Hosted API, Steps 3 to 5 (2026-10-14): built and checked locally. NOT deployed. 15 of 18 evals.
+- Step 3: `supabase/migrations/20261014000000_hosted_api.sql`, applied to project pxtefalibikzoewluzfu. RLS on, no
+  policies (advisor reports only that, as INFO). One table beyond the spec: `key_requests` (sha256 of IP, time) for
+  the 3 keys per IP per day limit, since memory is wiped on deploy.
+- `store.py`: plain HTTP to PostgREST. `clients._cached` uses `api_cache` only when server.py turns it on
+  (`clients.USE_SUPABASE_CACHE`), NOT whenever SUPABASE_URL is set: .env is shared with the evals, and they must keep
+  using cache/. Search results cached in Supabase expire after 24 h (news goes stale); model calls do not expire.
+- Token meter is now a context variable (concurrent requests count their own tokens). Evals rerun offline after
+  the change: identical numbers.
+- Step 4: `server.py` (FastAPI). /v1/search, /v1/feedback (needs a key too, else anyone could move scores),
+  /v1/keys, /, /healthz. Daily limit, 300 chars, 30 s timeout, queries logged, errors carry no keys or traces.
+  Feedback returns before/after/change of the usage part of usefulness (`usefulness.usage_score`, -0.2..+0.2).
+  Known gap: feedback read-modify-writes counts, so two reports at the same instant can lose one increment.
+- Step 5: `index.html`, filled by server.py from `example_response.json` (real run 2026-10-14, query "Humane AI Pin",
+  2 of 10 pages flagged as superseded, priced lower). "Humane news" was tried first: mostly animal shelters, no flag.
+  Checked at phone width: no horizontal scroll.
+- Demo companies re-cached on the new models: S3 passes again. Evals now 15 of 18 (E5, docs END-TO-END, F4 fail).
+- NOT tested yet: anything that touches Supabase (keys, search, feedback), because SUPABASE_SERVICE_KEY is not in
+  .env. Deploy config: `render.yaml` (free plan, health check /healthz). Needs Usman to connect Render.

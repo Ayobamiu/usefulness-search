@@ -7,6 +7,7 @@ Shapes:
                   "price_cents": float >= 0 (SIMULATED), "is_new": bool}
   history {"pages": {url: {"fetched": n, "cited": n}}, "domains": {domain: {"fetched": n, "cited": n}}}
 """
+import contextvars
 import copy
 import json
 import math
@@ -184,9 +185,17 @@ def search(query, history, check_freshness=True):
     for p in pages:
         p["superseded_by"] = replaced.get(p["url"])
     with ThreadPoolExecutor(len(pages) or 1) as pool:
-        scores = list(pool.map(lambda p: score(query, p, history), pages))
+        # Each worker runs in a copy of the caller's context, so token metering still sees its calls.
+        scores = list(pool.map(lambda job: job[0].run(score, query, job[1], history),
+                               [(contextvars.copy_context(), p) for p in pages]))
     return [{**p, "usefulness": u, "price_cents": price_cents(u), "is_new": p["url"] not in history["pages"]}
             for p, u in zip(pages, scores)]
+
+
+def usage_score(url, history):
+    """The part of usefulness that comes from usage history: what /v1/feedback moves."""
+    return (W_PAGE_USAGE * _page_usage(history["pages"].get(url))
+            + W_DOMAIN_USAGE * _usage(history["domains"].get(_domain(url))))
 
 
 def update_history(history, run_log):

@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Xtract search API</title>
+<style>
+  :root { --bg: #ffffff; --fg: #1a1a1a; --muted: #5f6368; --line: #e3e3e3; --code: #f5f5f4; --accent: #1f5fbf; --flag: #a33a00; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #141414; --fg: #ececec; --muted: #a0a0a0; --line: #2e2e2e; --code: #1f1f1f; --accent: #7fb0ff; --flag: #ff9a5c; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--fg); font: 16px/1.55 system-ui, -apple-system, Segoe UI, sans-serif; }
+  main { max-width: 760px; margin: 0 auto; padding: 32px 16px 64px; }
+  h1 { font-size: 1.9rem; margin: 0 0 12px; }
+  h2 { font-size: 1.2rem; margin: 40px 0 8px; }
+  p { margin: 8px 0; }
+  .lead { font-size: 1.1rem; }
+  .muted { color: var(--muted); font-size: 0.92rem; }
+  .sim { color: var(--muted); font-size: 0.85em; white-space: nowrap; }
+  pre, code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.85rem; }
+  pre { background: var(--code); border: 1px solid var(--line); border-radius: 8px; padding: 12px; overflow-x: auto; }
+  form { display: flex; gap: 8px; flex-wrap: wrap; margin: 12px 0; }
+  input { flex: 1 1 220px; padding: 10px 12px; font: inherit; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--fg); }
+  button { padding: 10px 16px; font: inherit; border: 0; border-radius: 8px; background: var(--accent); color: var(--bg); cursor: pointer; }
+  #key-out { word-break: break-all; }
+  .table-wrap { overflow-x: auto; }
+  table { border-collapse: collapse; width: 100%; font-size: 0.9rem; }
+  th, td { text-align: left; padding: 8px 6px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { font-weight: 600; }
+  th .sim { display: block; white-space: normal; font-weight: 400; }
+  td.num { white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .flag { color: var(--flag); font-size: 0.85rem; }
+  a { color: var(--accent); }
+</style>
+</head>
+<body>
+<main>
+
+<h1>Xtract</h1>
+<p class="lead">Search for AI agents that tells the agent how useful each page is, and what it costs, before the agent reads it.
+It also flags pages that later news has replaced, so the agent does not repeat an old story as current.</p>
+
+<h2>Get a key</h2>
+<p>Free, 50 searches a day. The key is shown once; we store only a hash of it.</p>
+<form id="key-form">
+  <input type="email" id="email" placeholder="you@example.com" required autocomplete="email">
+  <button type="submit">Get a key</button>
+</form>
+<pre id="key-out" hidden></pre>
+
+<h2>Search</h2>
+<pre id="curl-search">curl -s "ORIGIN/v1/search?q=Humane+AI+Pin" \
+  -H "Authorization: Bearer YOUR_KEY"</pre>
+<p>Each result has <code>url</code>, <code>title</code>, <code>snippet</code>, <code>keenable_rank</code>,
+<code>usefulness</code> (0 to 1), <code>price_cents</code> <span class="sim">(prices are simulated for now)</span>,
+<code>is_new</code> (no usage history yet) and <code>superseded_by</code> (null, or the later page and event).
+<code>scoring_cost_usd</code> is what our own model calls cost to score this search, at list prices.</p>
+
+<h2>One real response</h2>
+<p>Query <code>{{EXAMPLE_QUERY}}</code>, run on {{EXAMPLE_DATE}} with no usage history. Not edited.</p>
+<div class="table-wrap">
+<table>
+  <thead><tr><th>#</th><th>page</th><th>usefulness</th><th>price <span class="sim">(simulated for now)</span></th></tr></thead>
+  <tbody id="example-rows"></tbody>
+</table>
+</div>
+<details>
+  <summary class="muted">The raw JSON</summary>
+  <pre id="example-json">{{EXAMPLE_JSON}}</pre>
+</details>
+
+<h2>Tell us what you cited</h2>
+<p>After your agent answers, report which pages it read and which it cited:</p>
+<pre id="curl-feedback">curl -s -X POST "ORIGIN/v1/feedback" \
+  -H "Authorization: Bearer YOUR_KEY" -H "Content-Type: application/json" \
+  -d '{"query": "Humane AI Pin",
+       "fetched": ["https://example.com/a", "https://example.com/b"],
+       "cited":   ["https://example.com/a"]}'</pre>
+<p>This is how the scores learn. A page that gets read and cited scores higher for everyone next time;
+a page that gets read and ignored scores lower, and so does its price <span class="sim">(prices are simulated for now)</span>.
+The response shows how much each page's score moved.</p>
+
+<p class="muted">Search results come from <a href="https://keenable.ai">Keenable</a>. Scores use OpenAI models.
+Prices are simulated for now: nothing is charged.</p>
+
+</main>
+<script>
+  const origin = window.location.origin;
+  for (const id of ["curl-search", "curl-feedback"]) {
+    const el = document.getElementById(id);
+    el.textContent = el.textContent.replaceAll("ORIGIN", origin);
+  }
+
+  const example = JSON.parse(document.getElementById("example-json").textContent);
+  const rows = document.getElementById("example-rows");
+  for (const r of example.results) {
+    const tr = document.createElement("tr");
+    const page = document.createElement("td");
+    const link = document.createElement("a");
+    link.href = r.url; link.textContent = r.title; link.rel = "nofollow noopener";
+    page.append(link);
+    if (r.superseded_by) {
+      const note = document.createElement("div");
+      note.className = "flag";
+      note.textContent = "Superseded: " + r.superseded_by.event;
+      page.append(note);
+    }
+    const cells = [String(r.keenable_rank), null, r.usefulness.toFixed(2), r.price_cents.toFixed(2) + "c"];
+    cells.forEach((text, i) => {
+      if (i === 1) { tr.append(page); return; }
+      const td = document.createElement("td");
+      td.className = "num"; td.textContent = text; tr.append(td);
+    });
+    rows.append(tr);
+  }
+
+  document.getElementById("key-form").addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const out = document.getElementById("key-out");
+    out.hidden = false; out.textContent = "Creating a key...";
+    try {
+      const response = await fetch("/v1/keys", {
+        method: "POST", headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({email: document.getElementById("email").value})
+      });
+      const body = await response.json();
+      out.textContent = response.ok
+        ? "Your key (shown once, copy it now):\n" + body.api_key
+        : "Could not create a key: " + body.error;
+      if (response.ok) {
+        for (const id of ["curl-search", "curl-feedback"]) {
+          const el = document.getElementById(id);
+          el.textContent = el.textContent.replaceAll("YOUR_KEY", body.api_key);
+        }
+      }
+    } catch (e) {
+      out.textContent = "Could not reach the server. Please try again.";
+    }
+  });
+</script>
+</body>
+</html>

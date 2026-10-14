@@ -18,14 +18,14 @@ Held-out numbers come from n=6 held-out tasks x 3 runs (small sample). Treat the
 | END-TO-END ours vs naive | FAIL | correct: ours 100% vs naive 100% (gap 0pp); spend per task: ours 9.28c vs naive 27.62c (66% less, SIMULATED); READING tokens per task: ours 6804 vs naive 18781. SAME-BUDGET BASELINE (Keenable order, 10c, not part of pass/fail): correct 100%, spend 9.12c, tokens 6248. WITH OUR SCORING COUNTED (this is the pass rule for tokens): ours 22844 tokens (reading 6804 + scoring 16040) vs naive 18781, NET tokens saved -4063; cost incl. model tokens: ours 9.93c vs naive 27.81c, NET cost saved 17.88c. IF A SECOND AGENT REUSES CACHED SCORES: net tokens saved 11977 | n=6 held-out tasks x 3 runs (small sample) |
 | S1 sales quality: ours no worse than naive | PASS | current: ours 10 vs naive 8; stale: ours 0 vs naive 1; other: ours 5 vs naive 6 (of 15 each) | n=15 companies, 1 run each; keyword verdicts, Usman reads experiments/sales_results.md |
 | S2 sales cost: ours cheaper, scoring included | PASS | cost per query, scoring included (pages SIMULATED + model tokens): ours 10.65c vs naive 29.98c; pages read: ours 3.1 vs naive 10.0; tokens: ours 21424 (reading 4957 + scoring 16467) vs naive 14065; if a second agent reuses the cached scores, ours uses 4957 tokens | n=15 companies, 1 run each |
-| S3 live company query runs | FAIL | 1/4 ran end to end under 90s; Nvidia (offline): 0s FAILED or fell back; Stripe (offline): 0s FAILED or fell back; Figma (offline): 0s FAILED or fell back; Airbnb (online allowed): 2s ok | 3 pre-cached companies with OFFLINE=1, plus 1 other company with the network allowed (cached after its first run) |
+| S3 live company query runs | PASS | 4/4 ran end to end under 90s; Nvidia (offline): 0s ok; Stripe (offline): 0s ok; Figma (offline): 0s ok; Airbnb (online allowed): 0s ok | 3 pre-cached companies with OFFLINE=1, plus 1 other company with the network allowed (cached after its first run) |
 | S4 no company names in the logic | PASS | 0 company names found in usefulness.py, agents.py, demo.py, sales.py (24 names checked) | grep for every case, control and pre-cached company name |
 | F1 catches superseded pages | PASS | caught 4 of 4 eligible cases (16 old-story pages flagged) | n=8 held-out alert cases; eligible = Keenable returned both an old-story and a new-story page (keyword match) |
 | F2 no false alarms on controls | PASS | 0 of 5 control cases have a false alarm (0 of 50 pages flagged) | n=5 control cases, drafts UNVERIFIED |
 | F3 a flagged page costs less | PASS | 45/45 flagged pages are cheaper than the same page without the flag | tuning + held-out alert cases |
 | F4 END-TO-END alert cases, ours vs naive | FAIL | answers pitching the old event as current (keyword check): ours 12/24 vs naive 9/24; pages read: ours 2.9 vs naive 10.0; tokens per query: naive 13771, ours 19749 (reading 4401 + scoring 15348); NET tokens saved INCLUDING scoring -5978; NET cost saved INCLUDING scoring 19.33c (pages SIMULATED + model tokens at configured prices: naive 28.89c, ours 9.56c). IF A SECOND AGENT REUSES CACHED SCORES (scoring paid once): net tokens saved 9370 | n=8 held-out alert cases x 3 runs (small sample); keyword verdicts need Usman's hand read |
 
-Passed 14 of 18.
+Passed 15 of 18.
 
 Thresholds confirmed by Usman: NO (placeholders)
 

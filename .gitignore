@@ -7,3 +7,4 @@ cache/
 demo.html
 .claude/
 demo_run.json
+.venv/
