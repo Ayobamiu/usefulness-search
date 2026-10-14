@@ -231,3 +231,30 @@ Not done: no tuning after the held-out run; the 16 vs 15 answers have not been r
 - README numbers updated to match.
 Waiting on Usman: read `experiments/sales_results.md` and the held-out alert answers; approve README; video link;
 verify tasks, controls, thresholds.
+
+## Hosted API, Step 1 (2026-10-14): models migrated off gpt-4o. 14 of 18 evals pass (was 16). Branch `hosted-api`.
+Spec: `hosted_api_spec.md`. Supabase project for later steps: `xtract-api`, ref pxtefalibikzoewluzfu, "Search Org" (free).
+- `chat_model` gpt-6-luna; `answer_models` alert and sales gpt-6.1-sol; prices updated (luna $0.10/$0.50, sol $2/$10).
+- Both new models REJECT `temperature: 0` (only the default 1 is allowed). Left out for those two only
+  (`models_without_temperature` in `config.json`). Reruns stay repeatable only through the cache.
+- Freshness model: gpt-6-luna caught 4 of 4 but had 1 of 5 controls with a false alarm (3 of 50 pages), so it fails
+  the keep rule. gpt-6.1-sol: 4 of 4, 0 false alarms. `freshness_model` = gpt-6.1-sol.
+
+| Measure | Before (gpt-4o era) | After (luna / sol) |
+|---|---|---|
+| Evals passing | 16 of 18 | 14 of 18 |
+| Sales, n=15: current | ours 11, naive 10 | ours 10, naive 8 |
+| Sales, n=15: stale | ours 1, naive 2 | ours 0, naive 1 |
+| Sales, n=15: other | ours 3, naive 3 | ours 5, naive 6 |
+| Sales pages read | 3.1 vs 10 | 3.1 vs 10 |
+| Sales cost per query, scoring incl. | 10.30c vs 26.61c | 10.65c vs 29.98c |
+| Sales tokens per query, scoring incl. | 19,539 vs 14,067 | 21,383 vs 14,065 |
+| E5 precision@3, ours vs Keenable | 0.500 vs 0.500 (PASS) | 0.130 vs 0.148 (FAIL) |
+| F1 / F2 | 4 of 4 / 0 of 5 | 4 of 4 / 0 of 5 |
+| F4 alert held-out stale | ours 16/24, naive 15/24 | ours 12/24, naive 9/24 (FAIL) |
+| Docs END-TO-END tokens with scoring | 20,819 vs 18,829 (FAIL) | 22,883 vs 18,781 (FAIL) |
+
+- New FAIL E5: both precision numbers collapsed (labels are the naive agent's citations, which now come from
+  gpt-6-luna). Not investigated or tuned.
+- New FAIL S3: the 3 pre-cached demo companies have no cache for the new models, so they fail with OFFLINE=1.
+  Re-caching them (live run) should fix it; not done.

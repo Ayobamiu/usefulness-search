@@ -141,6 +141,8 @@ def chat(messages, run=0, json_mode=False, model=None):
     3 real samples that are each still repeatable from cache.
     """
     body = {"model": model or CONFIG["chat_model"], "messages": messages, "temperature": 0}
+    if body["model"] in CONFIG["models_without_temperature"]["models"]:
+        del body["temperature"]
     if json_mode:
         body["response_format"] = {"type": "json_object"}
     response = _cached("openai_chat", {"body": body, "run": run}, lambda: _openai(
