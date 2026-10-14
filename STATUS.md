@@ -286,7 +286,7 @@ Spec: `hosted_api_spec.md`. Supabase project for later steps: `xtract-api`, ref 
   Checked at phone width: no horizontal scroll.
 - Demo companies re-cached on the new models: S3 passes again. Evals now 15 of 18 (E5, docs END-TO-END, F4 fail).
 - NOT tested yet: anything that touches Supabase (keys, search, feedback), because SUPABASE_SERVICE_KEY is not in
-  .env. Deploy config: `render.yaml` (free plan, health check /healthz). Needs Usman to connect Render.
+  .env. Deploy config: `render.yaml` (replaced by `railway.json` on 2026-10-14: deploy on Railway).
 
 ## Hosted API, Step 4 tested against Supabase locally (2026-10-14): all paths work. Still NOT deployed.
 - .env holds SUPABASE_SECRET_KEY (new sb_secret_ key); `store.py` accepts it or SUPABASE_SERVICE_KEY. SUPABASE_URL added.
