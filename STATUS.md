@@ -258,3 +258,12 @@ Spec: `hosted_api_spec.md`. Supabase project for later steps: `xtract-api`, ref 
   gpt-6-luna). Not investigated or tuned.
 - New FAIL S3: the 3 pre-cached demo companies have no cache for the new models, so they fail with OFFLINE=1.
   Re-caching them (live run) should fix it; not done.
+
+## Hosted API, Step 2 (2026-10-14): answer-check prompt generalized. 14 of 18 (unchanged).
+- `CHECK_PROMPT` now says "a question" instead of "a coding question". No other domain wording in it.
+- Spec rule 5 said `usefulness.py` had an uncommitted change; the working tree was clean at the start of this
+  session (no diff, no stash), so there was nothing to ask about.
+- E2: PASS, 6 of 6, same scores as after Step 1. E5: FAIL, 0.130 vs 0.148, same as after Step 1 (not worse).
+- Sales: current 10 vs 8, stale 0 vs 1, other 5 vs 6, cost 10.65c vs 29.98c, tokens 21,424 vs 14,065 (was 21,383:
+  the new checks were real calls; verdicts that matter did not change, so the bought pages and answers are identical).
+- No tuning done.

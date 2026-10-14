@@ -73,7 +73,7 @@ FRESHNESS_PROMPT = (
     '"later_event": "<the later event and when it happened, at most 15 words>"}]} (an empty list if none).')
 
 CHECK_PROMPT = (
-    "You judge search results for a coding question. Given the question and one result's "
+    "You judge search results for a question. Given the question and one result's "
     "title and snippet, decide whether the snippet itself contains the answer.\n"
     'Reply with JSON: {"verdict": "yes"} if it states the answer, {"verdict": "partial"} if it '
     'is on the exact topic but does not state the answer, {"verdict": "no"} otherwise.')

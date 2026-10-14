@@ -9,26 +9,26 @@ Verdicts are keyword checks (current / stale / other). **Usman: please read the 
 | stale | 1 | 0 |
 | other | 6 | 5 |
 | pages read | 10.0 | 3.1 |
-| tokens per query | 14065 | 21383 (reading 4957 + scoring 16426) |
+| tokens per query | 14065 | 21424 (reading 4957 + scoring 16467) |
 | cost per query (pages simulated + tokens) | 29.98c | 10.65c |
 
 | company | naive | ours | pages | tokens naive | tokens ours (reading + scoring) | cost naive | cost ours |
 |---|---|---|---|---|---|---|---|
-| Humane (the AI hardware startup) | current | current | 3 | 13665 | 20801 (4570 + 16231) | 32.51c | 11.15c |
-| Builder.ai | current | current | 3 | 15109 | 23151 (5531 + 17620) | 30.55c | 10.80c |
-| Windsurf (the AI coding tool company) | current | current | 3 | 18331 | 23409 (5609 + 17800) | 32.11c | 10.58c |
-| Figure AI | other | other | 3 | 11481 | 20554 (4922 + 15632) | 28.48c | 10.32c |
-| Natron Energy | current | current | 3 | 13491 | 21567 (5451 + 16116) | 29.24c | 10.70c |
-| Rad Power Bikes | current | current | 3 | 15973 | 22991 (4597 + 18394) | 29.60c | 11.17c |
-| Forward (the primary care startup) | current | current | 4 | 14775 | 22003 (5652 + 16351) | 30.54c | 11.95c |
-| Notion | other | other | 3 | 16518 | 22423 (5906 + 16517) | 29.77c | 10.99c |
-| 80 Acres Farms | current | current | 3 | 11608 | 19306 (4832 + 14474) | 30.15c | 8.89c |
-| Limitless (formerly Rewind) | current | current | 3 | 12626 | 18448 (3297 + 15151) | 30.38c | 9.40c |
-| Plenty (the vertical farming company) | stale | current | 3 | 8401 | 19217 (3718 + 15499) | 26.62c | 11.32c |
-| Northvolt | other | current | 3 | 18210 | 21352 (4954 + 16398) | 29.18c | 10.57c |
-| Tools for Humanity (World) | other | other | 3 | 11628 | 20592 (4106 + 16486) | 28.30c | 9.94c |
-| Lattice (the HR software company) | other | other | 3 | 16489 | 22478 (5828 + 16650) | 32.74c | 11.57c |
-| Scale AI | other | other | 3 | 12677 | 22452 (5388 + 17064) | 29.61c | 10.44c |
+| Humane (the AI hardware startup) | current | current | 3 | 13665 | 20910 (4570 + 16340) | 32.51c | 11.15c |
+| Builder.ai | current | current | 3 | 15109 | 23253 (5531 + 17722) | 30.55c | 10.80c |
+| Windsurf (the AI coding tool company) | current | current | 3 | 18331 | 23469 (5609 + 17860) | 32.11c | 10.59c |
+| Figure AI | other | other | 3 | 11481 | 20610 (4922 + 15688) | 28.48c | 10.32c |
+| Natron Energy | current | current | 3 | 13491 | 21704 (5451 + 16253) | 29.24c | 10.71c |
+| Rad Power Bikes | current | current | 3 | 15973 | 22958 (4597 + 18361) | 29.60c | 11.16c |
+| Forward (the primary care startup) | current | current | 4 | 14775 | 22064 (5652 + 16412) | 30.54c | 11.95c |
+| Notion | other | other | 3 | 16518 | 22419 (5906 + 16513) | 29.77c | 10.99c |
+| 80 Acres Farms | current | current | 3 | 11608 | 19353 (4832 + 14521) | 30.15c | 8.89c |
+| Limitless (formerly Rewind) | current | current | 3 | 12626 | 18427 (3297 + 15130) | 30.38c | 9.39c |
+| Plenty (the vertical farming company) | stale | current | 3 | 8401 | 19168 (3718 + 15450) | 26.62c | 11.32c |
+| Northvolt | other | current | 3 | 18210 | 21376 (4954 + 16422) | 29.18c | 10.57c |
+| Tools for Humanity (World) | other | other | 3 | 11628 | 20704 (4106 + 16598) | 28.30c | 9.95c |
+| Lattice (the HR software company) | other | other | 3 | 16489 | 22524 (5828 + 16696) | 32.74c | 11.57c |
+| Scale AI | other | other | 3 | 12677 | 22425 (5388 + 17037) | 29.61c | 10.44c |
 
 ## Answers
 
