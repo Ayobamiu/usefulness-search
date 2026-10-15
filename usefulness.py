@@ -7,6 +7,7 @@ Shapes:
                   "price_cents": float >= 0 (SIMULATED), "is_new": bool}
   history {"pages": {url: {"fetched": n, "cited": n}}, "domains": {domain: {"fetched": n, "cited": n}}}
 """
+import contextvars
 import copy
 import json
 import math
@@ -72,11 +73,21 @@ FRESHNESS_PROMPT = (
     'Reply with JSON: {"superseded": [{"page": <number>, "by": <number of the later page>, '
     '"later_event": "<the later event and when it happened, at most 15 words>"}]} (an empty list if none).')
 
+# Stricter since 2026-10-14: with gpt-6-luna the old prompt said "yes" to 90% of pages and did not separate cited
+# from uncited ones. Pages about a different thing that shares a name are "no"; the other results' titles (passed
+# with the question) show what the query most likely refers to. Measured on training tasks only.
 CHECK_PROMPT = (
-    "You judge search results for a coding question. Given the question and one result's "
-    "title and snippet, decide whether the snippet itself contains the answer.\n"
-    'Reply with JSON: {"verdict": "yes"} if it states the answer, {"verdict": "partial"} if it '
-    'is on the exact topic but does not state the answer, {"verdict": "no"} otherwise.')
+    "You judge one search result for a query. The query may be a question or just a topic or name.\n"
+    "First decide whether the result is about the same specific thing the query means. A different thing that "
+    "only shares a word or a name is not the same thing.\n"
+    "Then judge the snippet itself, not what the full page might contain:\n"
+    "- If the query is a question: does the snippet state the specific answer, so a reader could answer from the "
+    "snippet alone?\n"
+    "- If the query is a topic or name: is the snippet mainly about that thing, with concrete facts about it?\n"
+    'Be strict. "yes" is for results that clearly meet that bar; mentioning the subject, background or related '
+    'material is "partial".\n'
+    'Reply with JSON: {"verdict": "yes"} if it is the same thing and meets the bar, {"verdict": "partial"} if it '
+    'is the same thing but does not meet the bar, {"verdict": "no"} if it is about a different thing or unrelated.')
 VERDICTS = {"yes": 1.0, "partial": 0.5, "no": 0.0}
 
 
@@ -99,9 +110,13 @@ def _similarity(query, page):
     return min(1.0, max(0.0, scaled))
 
 
-def _answer_check(query, page):
+def _answer_check(query, page, other_titles=()):
+    context = ""
+    if other_titles:
+        context = ("\n\nOther results for this query (a hint for what it most likely refers to):\n"
+                   + "\n".join("- " + t for t in other_titles))
     reply = clients.chat([{"role": "system", "content": CHECK_PROMPT},
-                          {"role": "user", "content": f"Question: {query}\n\nResult:\n{_text(page)}"}],
+                          {"role": "user", "content": f"Question: {query}{context}\n\nResult:\n{_text(page)}"}],
                          json_mode=True)
     return VERDICTS.get(json.loads(reply["content"]).get("verdict"), 0.0)
 
@@ -159,11 +174,15 @@ def freshness(query, pages):
     return {url: by for url, by in superseded.items() if superseded.get(by["url"], {}).get("url") != url}
 
 
-def score(query, page, history):
-    """Usefulness in [0, 1] of this page for THIS query."""
+def score(query, page, history, task=None, other_titles=()):
+    """Usefulness in [0, 1] of this page for THIS query.
+
+    `task` (optional) is what the caller wants answered. The answer check judges the page against it;
+    without one it judges against the query, which is weaker when the query is a topic, not a question.
+    """
     return (1 - W_SUPERSEDED * bool(page.get("superseded_by"))) * (BASELINE
             + W_SIMILARITY * _similarity(query, page)
-            + W_ANSWER_CHECK * _answer_check(query, page)
+            + W_ANSWER_CHECK * _answer_check(task or query, page, other_titles)
             + W_KEENABLE_RANK * _rank_prior(page)
             + W_PAGE_USAGE * _page_usage(history["pages"].get(page["url"]))
             + W_DOMAIN_USAGE * _usage(history["domains"].get(_domain(page["url"]))))
@@ -174,7 +193,7 @@ def price_cents(usefulness):
     return round(PRICE_FLOOR_CENTS + PRICE_PER_USEFULNESS_CENTS * usefulness, 4)
 
 
-def search(query, history, check_freshness=True):
+def search(query, history, check_freshness=True, task=None):
     """Keenable's top pages for the query, each as a `result`."""
     pages = [{"url": r["url"], "title": r.get("title") or r["url"],
               "snippet": r.get("snippet") or r.get("description") or "", "keenable_rank": rank,
@@ -184,9 +203,18 @@ def search(query, history, check_freshness=True):
     for p in pages:
         p["superseded_by"] = replaced.get(p["url"])
     with ThreadPoolExecutor(len(pages) or 1) as pool:
-        scores = list(pool.map(lambda p: score(query, p, history), pages))
+        # Each worker runs in a copy of the caller's context, so token metering still sees its calls.
+        others = lambda page: tuple(p["title"] for p in pages if p is not page)
+        scores = list(pool.map(lambda job: job[0].run(score, query, job[1], history, task, others(job[1])),
+                               [(contextvars.copy_context(), p) for p in pages]))
     return [{**p, "usefulness": u, "price_cents": price_cents(u), "is_new": p["url"] not in history["pages"]}
             for p, u in zip(pages, scores)]
+
+
+def usage_score(url, history):
+    """The part of usefulness that comes from usage history: what /v1/feedback moves."""
+    return (W_PAGE_USAGE * _page_usage(history["pages"].get(url))
+            + W_DOMAIN_USAGE * _usage(history["domains"].get(_domain(url))))
 
 
 def update_history(history, run_log):

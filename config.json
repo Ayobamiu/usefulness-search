@@ -1,5 +1,12 @@
 {
-  "chat_model": "gpt-4o-mini",
+  "chat_model": "gpt-6-luna",
+  "models_without_temperature": {
+    "_note": "These models reject temperature 0 (only the default 1 is allowed), so it is left out for them.",
+    "models": [
+      "gpt-6-luna",
+      "gpt-6.1-sol"
+    ]
+  },
   "embedding_model": "text-embedding-3-small",
   "keenable_mode": "pro",
   "top_k": 10,
@@ -9,10 +16,10 @@
   "demo_task_id": "t18",
   "token_prices_usd_per_million": {
     "_note": "List prices as configured here; used only to turn token counts into a simulated cost.",
-    "chat_input": 0.15,
-    "chat_output": 0.6,
+    "chat_input": 0.1,
+    "chat_output": 0.5,
     "embedding": 0.02,
-    "strong_input": 2.5,
+    "strong_input": 2.0,
     "strong_output": 10.0
   },
   "precached_companies": [
@@ -24,10 +31,10 @@
   ],
   "s3_online_company": "Airbnb",
   "demo_sales_company": "Windsurf (the AI coding tool company)",
-  "freshness_model": "gpt-4o",
+  "freshness_model": "gpt-6.1-sol",
   "answer_models": {
     "_note": "Answering model per task kind, the same for every agent. Kinds not listed use chat_model.",
-    "alert": "gpt-4o",
-    "sales": "gpt-4o"
+    "alert": "gpt-6.1-sol",
+    "sales": "gpt-6.1-sol"
   }
 }

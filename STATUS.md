@@ -231,3 +231,119 @@ Not done: no tuning after the held-out run; the 16 vs 15 answers have not been r
 - README numbers updated to match.
 Waiting on Usman: read `experiments/sales_results.md` and the held-out alert answers; approve README; video link;
 verify tasks, controls, thresholds.
+
+## Hosted API, Step 1 (2026-10-14): models migrated off gpt-4o. 14 of 18 evals pass (was 16). Branch `hosted-api`.
+Spec: `hosted_api_spec.md`. Supabase project for later steps: `xtract-api`, ref pxtefalibikzoewluzfu, "Search Org" (free).
+- `chat_model` gpt-6-luna; `answer_models` alert and sales gpt-6.1-sol; prices updated (luna $0.10/$0.50, sol $2/$10).
+- Both new models REJECT `temperature: 0` (only the default 1 is allowed). Left out for those two only
+  (`models_without_temperature` in `config.json`). Reruns stay repeatable only through the cache.
+- Freshness model: gpt-6-luna caught 4 of 4 but had 1 of 5 controls with a false alarm (3 of 50 pages), so it fails
+  the keep rule. gpt-6.1-sol: 4 of 4, 0 false alarms. `freshness_model` = gpt-6.1-sol.
+
+| Measure | Before (gpt-4o era) | After (luna / sol) |
+|---|---|---|
+| Evals passing | 16 of 18 | 14 of 18 |
+| Sales, n=15: current | ours 11, naive 10 | ours 10, naive 8 |
+| Sales, n=15: stale | ours 1, naive 2 | ours 0, naive 1 |
+| Sales, n=15: other | ours 3, naive 3 | ours 5, naive 6 |
+| Sales pages read | 3.1 vs 10 | 3.1 vs 10 |
+| Sales cost per query, scoring incl. | 10.30c vs 26.61c | 10.65c vs 29.98c |
+| Sales tokens per query, scoring incl. | 19,539 vs 14,067 | 21,383 vs 14,065 |
+| E5 precision@3, ours vs Keenable | 0.500 vs 0.500 (PASS) | 0.130 vs 0.148 (FAIL) |
+| F1 / F2 | 4 of 4 / 0 of 5 | 4 of 4 / 0 of 5 |
+| F4 alert held-out stale | ours 16/24, naive 15/24 | ours 12/24, naive 9/24 (FAIL) |
+| Docs END-TO-END tokens with scoring | 20,819 vs 18,829 (FAIL) | 22,883 vs 18,781 (FAIL) |
+
+- New FAIL E5: both precision numbers collapsed (labels are the naive agent's citations, which now come from
+  gpt-6-luna). Not investigated or tuned.
+- New FAIL S3: the 3 pre-cached demo companies have no cache for the new models, so they fail with OFFLINE=1.
+  Re-caching them (live run) should fix it; not done.
+
+## Hosted API, Step 2 (2026-10-14): answer-check prompt generalized. 14 of 18 (unchanged).
+- `CHECK_PROMPT` now says "a question" instead of "a coding question". No other domain wording in it.
+- Spec rule 5 said `usefulness.py` had an uncommitted change; the working tree was clean at the start of this
+  session (no diff, no stash), so there was nothing to ask about.
+- E2: PASS, 6 of 6, same scores as after Step 1. E5: FAIL, 0.130 vs 0.148, same as after Step 1 (not worse).
+- Sales: current 10 vs 8, stale 0 vs 1, other 5 vs 6, cost 10.65c vs 29.98c, tokens 21,424 vs 14,065 (was 21,383:
+  the new checks were real calls; verdicts that matter did not change, so the bought pages and answers are identical).
+- No tuning done.
+
+## Hosted API, Steps 3 to 5 (2026-10-14): built and checked locally. NOT deployed. 15 of 18 evals.
+- Step 3: `supabase/migrations/20261014000000_hosted_api.sql`, applied to project pxtefalibikzoewluzfu. RLS on, no
+  policies (advisor reports only that, as INFO). One table beyond the spec: `key_requests` (sha256 of IP, time) for
+  the 3 keys per IP per day limit, since memory is wiped on deploy.
+- `store.py`: plain HTTP to PostgREST. `clients._cached` uses `api_cache` only when server.py turns it on
+  (`clients.USE_SUPABASE_CACHE`), NOT whenever SUPABASE_URL is set: .env is shared with the evals, and they must keep
+  using cache/. Search results cached in Supabase expire after 24 h (news goes stale); model calls do not expire.
+- Token meter is now a context variable (concurrent requests count their own tokens). Evals rerun offline after
+  the change: identical numbers.
+- Step 4: `server.py` (FastAPI). /v1/search, /v1/feedback (needs a key too, else anyone could move scores),
+  /v1/keys, /, /healthz. Daily limit, 300 chars, 30 s timeout, queries logged, errors carry no keys or traces.
+  Feedback returns before/after/change of the usage part of usefulness (`usefulness.usage_score`, -0.2..+0.2).
+  Known gap: feedback read-modify-writes counts, so two reports at the same instant can lose one increment.
+- Step 5: `index.html`, filled by server.py from `example_response.json` (real run 2026-10-14, query "Humane AI Pin",
+  2 of 10 pages flagged as superseded, priced lower). "Humane news" was tried first: mostly animal shelters, no flag.
+  Checked at phone width: no horizontal scroll.
+- Demo companies re-cached on the new models: S3 passes again. Evals now 15 of 18 (E5, docs END-TO-END, F4 fail).
+- NOT tested yet: anything that touches Supabase (keys, search, feedback), because SUPABASE_SERVICE_KEY is not in
+  .env. Deploy config: `render.yaml` (replaced by `railway.json` on 2026-10-14: deploy on Railway).
+
+## Hosted API, Step 4 tested against Supabase locally (2026-10-14): all paths work. Still NOT deployed.
+- .env holds SUPABASE_SECRET_KEY (new sb_secret_ key); `store.py` accepts it or SUPABASE_SERVICE_KEY. SUPABASE_URL added.
+- Flow on localhost: key created (only the 64-char hash stored); bad key 401; 301-char query 400; search "Humane AI Pin"
+  14 s cold, 10 results, 3 flagged; feedback (Mashable read+cited, Wikipedia read only) returned +0.1667 / -0.1667;
+  search again 2 s from the Supabase cache, Mashable 0.728 -> 0.895 (3.05c -> 3.63c), Wikipedia 0.713 -> 0.547
+  (3.00c -> 2.41c), the other 8 unchanged. Daily limit (set to 2 on the test key) gave 429; 4th key from one IP gave 429.
+- Rows: queries logged with latency and cost; server log has no keys and no traces. Evals still 15 of 18 offline.
+- `scoring_cost_usd` is the list-price cost of the scoring calls even when served from cache (both queries logged
+  $0.006977). The page now says so. Real spend per cached query is near zero.
+- Not tested: the 30 s timeout path.
+- Test data left in Supabase: 3 test keys (Usman's email), 2 queries, page/domain usage for 2 real pages, cache rows.
+
+## Hosted API, Step 6 (2026-10-14): deployed on Railway. https://xtract-production-2efc.up.railway.app
+- Railway project `xtract`, service `xtract`. Env vars OPENAI_API_KEY, KEENABLE_API_KEY, SUPABASE_URL,
+  SUPABASE_SECRET_KEY set from .env (values never printed). Python 3.14 via `.python-version`.
+- `railway.json` start command was ignored (Railpack guessed `uvicorn main:app` and crashed); a `Procfile` fixed it.
+- End to end with curl and an empty environment: healthz ok; page 200; key; search "Humane AI Pin" (10 results,
+  3 flagged); feedback +0.1667 / -0.1667; search again: Mashable 0.728 -> 0.895, Wikipedia 0.713 -> 0.547. Missing
+  and bad keys get clear errors. Not a separate machine: same laptop, clean env, public URL.
+- A FRESH query (not in the Supabase cache) failed: OpenAI returned 429 credit_balance_exhausted. Usman funded the
+  account; the key still reported exhausted a few minutes later. Recheck before sharing the link.
+- Rechecked after billing was fixed (same key, Railway already had it): fresh query "Builder.ai news" on the live
+  URL took 6 s, 10 results, 0 flagged (all pages report the collapse, so nothing is outdated), scoring $0.0048.
+- Found in the live logs: unexpected errors printed a full traceback with the upstream error body. Fixed: one line
+  with the exception type and upstream service + status only. Verified live, no traceback.
+- All test rows (local and live) removed from Supabase on 2026-10-14; the api_cache rows were kept.
+
+## Hosted API follow-ups (2026-10-14), from Usman's live test (sample.txt, not committed)
+- Responses were ~45 to 58 KB; 92% was snippets (Keenable "pro" returns most of the page). Usman's viewer cut the
+  58 KB one at 57 KB. The server never truncated. Now: snippets trimmed to 400 chars at a sentence or word, "…";
+  `snippet_chars` 100..2000. Scoring still reads the long text. "Humane AI Pin" response: 58,144 -> 7,148 chars.
+- New optional `task` (<= 500 chars): the answer check judges pages against it instead of the query.
+  Measured on "Discovery loop": the answer check says "yes" for ALL 10 pages on the bare query, including an
+  off-topic SlideShare deck. With task "Who started Discovery Loop and what is it building?" only the
+  circle-packing paper drops (0.527 -> 0.402). So `task` helps a little; the check (gpt-6-luna on the snippet) is
+  lenient. Not tuned.
+- Freshness prompt generalized ("about a company" removed) and evals rerun: F2 FAILED, 1 of 5 controls flagged
+  (c04 ServiceNow: a "Moveworks vs ServiceNow: buy Moveworks standalone?" page flagged as replaced by "Moveworks
+  absorbed into ServiceNow's Otto brand by May 2026", arguably right, but the keep rule is 0 false alarms).
+  Reverted to the company wording; evals back to 15 of 18. Decision for Usman.
+- The server adds nothing to the query (the hackathon's "{company} news" was sales mode only). Usman's first sample
+  says "Humane AI Pin", not "Human ai pin": it was the page example, served from cache.
+- index.html opened as a plain file showed an empty table (template placeholders unfilled; one was inside the
+  script and crashed it). Now the data sits in JSON blocks and the table says it needs server.py. Served page was fine.
+
+## Stricter answer check (2026-10-14): kept. 15 of 18 evals (unchanged). Deployed.
+- Measured on TRAINING data only (docs train tasks + alert tune cases, labels = naive citations; "Discovery loop"
+  labelled by hand by URL). Old prompt with gpt-6-luna: 162 of 180 docs pages "yes", cited vs uncited gap +0.003;
+  alert tune gap -0.109; Discovery loop all 10 "yes".
+- Correction to my earlier read of Usman's sample: the SlideShare deck IS about Jeff Dean's Discovery Loop. The only
+  off-topic page is the circle-packing paper (a different system with the same name).
+- Stricter prompt alone: almost no change. Stricter prompt + the other results' titles as context (what the query
+  most likely refers to): docs gap +0.028, alert -0.006, circle-packing paper "no", all 11 on-topic pages "yes".
+- Shipped that. Live path, "Discovery loop": circle-packing paper 0.527 -> 0.277 (below the 0.45 skip line), on-topic
+  pages unchanged; spread 0.144 -> 0.394. Humane example unchanged.
+- Keep rule set before the run: no passing eval fails, sales not worse. Result: same 15 of 18 after re-caching the
+  demo companies (S3 failed only for the stale cache). E5 unchanged (0.130 vs 0.148). Sales quality unchanged.
+- Cost: scoring tokens up about 2,900 per sales query (21,438 -> 24,324) from the titles; cost per query ~same
+  (10.67c -> 10.66c, Luna is cheap). F4 net tokens -5,985 -> -9,386. Docs end-to-end still fails on tokens.
