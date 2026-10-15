@@ -46,11 +46,18 @@ async def _http_error(request, exc):
     return _error(exc.status_code, exc.detail)
 
 
-@app.exception_handler(Exception)
-async def _any_error(request, exc):
-    # The exception type only: messages can carry URLs or upstream bodies. Never a stack trace.
-    log.error("%s %s failed: %s", request.method, request.url.path, type(exc).__name__)
-    return _error(500, "internal error, please try again")
+@app.middleware("http")
+async def _any_error(request, call_next):
+    # A middleware, not an exception handler: Starlette re-raises after handlers, and uvicorn then logs the
+    # full traceback. Logged: the exception type and, for upstream calls, the service and HTTP status only.
+    # Never the message body (upstream errors can echo request details) and never a stack trace.
+    try:
+        return await call_next(request)
+    except Exception as exc:
+        upstream = re.match(r"(\w+ https://[^/\s]+)\S* failed: (HTTP \d+)", str(exc))
+        log.error("%s %s failed: %s%s", request.method, request.url.path, type(exc).__name__,
+                  f" ({upstream.group(1)} {upstream.group(2)})" if upstream else "")
+        return _error(500, "internal error, please try again")
 
 
 async def _run(fn, *args):
