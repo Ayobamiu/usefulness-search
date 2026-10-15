@@ -332,3 +332,18 @@ Spec: `hosted_api_spec.md`. Supabase project for later steps: `xtract-api`, ref 
   says "Humane AI Pin", not "Human ai pin": it was the page example, served from cache.
 - index.html opened as a plain file showed an empty table (template placeholders unfilled; one was inside the
   script and crashed it). Now the data sits in JSON blocks and the table says it needs server.py. Served page was fine.
+
+## Stricter answer check (2026-10-14): kept. 15 of 18 evals (unchanged). Deployed.
+- Measured on TRAINING data only (docs train tasks + alert tune cases, labels = naive citations; "Discovery loop"
+  labelled by hand by URL). Old prompt with gpt-6-luna: 162 of 180 docs pages "yes", cited vs uncited gap +0.003;
+  alert tune gap -0.109; Discovery loop all 10 "yes".
+- Correction to my earlier read of Usman's sample: the SlideShare deck IS about Jeff Dean's Discovery Loop. The only
+  off-topic page is the circle-packing paper (a different system with the same name).
+- Stricter prompt alone: almost no change. Stricter prompt + the other results' titles as context (what the query
+  most likely refers to): docs gap +0.028, alert -0.006, circle-packing paper "no", all 11 on-topic pages "yes".
+- Shipped that. Live path, "Discovery loop": circle-packing paper 0.527 -> 0.277 (below the 0.45 skip line), on-topic
+  pages unchanged; spread 0.144 -> 0.394. Humane example unchanged.
+- Keep rule set before the run: no passing eval fails, sales not worse. Result: same 15 of 18 after re-caching the
+  demo companies (S3 failed only for the stale cache). E5 unchanged (0.130 vs 0.148). Sales quality unchanged.
+- Cost: scoring tokens up about 2,900 per sales query (21,438 -> 24,324) from the titles; cost per query ~same
+  (10.67c -> 10.66c, Luna is cheap). F4 net tokens -5,985 -> -9,386. Docs end-to-end still fails on tokens.
