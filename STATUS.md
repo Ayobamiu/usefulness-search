@@ -299,3 +299,16 @@ Spec: `hosted_api_spec.md`. Supabase project for later steps: `xtract-api`, ref 
   $0.006977). The page now says so. Real spend per cached query is near zero.
 - Not tested: the 30 s timeout path.
 - Test data left in Supabase: 3 test keys (Usman's email), 2 queries, page/domain usage for 2 real pages, cache rows.
+
+## Hosted API, Step 6 (2026-10-14): deployed on Railway. https://xtract-production-2efc.up.railway.app
+- Railway project `xtract`, service `xtract`. Env vars OPENAI_API_KEY, KEENABLE_API_KEY, SUPABASE_URL,
+  SUPABASE_SECRET_KEY set from .env (values never printed). Python 3.14 via `.python-version`.
+- `railway.json` start command was ignored (Railpack guessed `uvicorn main:app` and crashed); a `Procfile` fixed it.
+- End to end with curl and an empty environment: healthz ok; page 200; key; search "Humane AI Pin" (10 results,
+  3 flagged); feedback +0.1667 / -0.1667; search again: Mashable 0.728 -> 0.895, Wikipedia 0.713 -> 0.547. Missing
+  and bad keys get clear errors. Not a separate machine: same laptop, clean env, public URL.
+- A FRESH query (not in the Supabase cache) failed: OpenAI returned 429 credit_balance_exhausted. Usman funded the
+  account; the key still reported exhausted a few minutes later. Recheck before sharing the link.
+- Found in the live logs: unexpected errors printed a full traceback with the upstream error body. Fixed: one line
+  with the exception type and upstream service + status only. Verified live, no traceback.
+- Test rows from this run (1 key, 2 queries, usage for 2 pages) are in Supabase. The earlier local test rows were removed.

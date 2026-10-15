@@ -6,6 +6,8 @@
 
 Narration uses an earlier run (8.4c vs 25.1c); current numbers are in Results below.
 
+🔌 **Try the API:** https://xtract-production-2efc.up.railway.app (get a free key on the page, 50 searches a day; prices are simulated)
+
 ---
 
 ## What we built
