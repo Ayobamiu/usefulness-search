@@ -24,6 +24,11 @@ import usefulness
 ROOT = pathlib.Path(__file__).parent
 REQUEST_TIMEOUT_S = 30
 MAX_QUERY_CHARS = 300
+MAX_TASK_CHARS = 500
+# Snippets are trimmed in the response: the full page is what the price is for, and a 50 KB response
+# breaks agent tool-output limits. Scoring still reads the longer text internally.
+SNIPPET_CHARS = 400
+MAX_SNIPPET_CHARS = 2000
 MAX_FEEDBACK_URLS = 50
 KEYS_PER_IP_PER_DAY = 3
 EMAIL = re.compile(r"^[^@\s]{1,64}@[^@\s]{1,190}\.[^@\s]{2,}$")
@@ -143,14 +148,27 @@ def _scoring_cost_usd(meter):
 
 # ---- search ------------------------------------------------------------------
 
-def search(query):
+def short_snippet(text, limit):
+    """At most `limit` characters, cut at a sentence end when one is near, else at a word, marked with "…"."""
+    text = " ".join(text.split())
+    if len(text) <= limit:
+        return text
+    cut = text[:limit - 1]
+    sentence = max(cut.rfind(". "), cut.rfind("! "), cut.rfind("? "))
+    if sentence >= limit // 2:
+        return cut[:sentence + 1] + " …"
+    space = cut.rfind(" ")
+    return (cut[:space] if space > 0 else cut) + "…"
+
+
+def search(query, task=None, snippet_chars=SNIPPET_CHARS):
     """Shared by GET /v1/search and the saved example on the page."""
     with clients.metering() as meter:
         raw = clients.keenable_search(query)
         history = _load_history([r["url"] for r in raw])
-        results = usefulness.search(query, history)
-    return {"query": query,
-            "results": [{"url": r["url"], "title": r["title"], "snippet": r["snippet"],
+        results = usefulness.search(query, history, task=task)
+    return {"query": query, "task": task,
+            "results": [{"url": r["url"], "title": r["title"], "snippet": short_snippet(r["snippet"], snippet_chars),
                          "keenable_rank": r["keenable_rank"], "usefulness": round(r["usefulness"], 4),
                          "price_cents": r["price_cents"], "is_new": r["is_new"],
                          "superseded_by": r["superseded_by"]} for r in results],
@@ -158,12 +176,12 @@ def search(query):
             "prices": "simulated"}
 
 
-def _search_logged(key_hash, daily_limit, query):
+def _search_logged(key_hash, daily_limit, query, task, snippet_chars):
     used = store.count("queries", {"key_hash": f"eq.{key_hash}", "created_at": f"gte.{_today_utc()}"})
     if used >= daily_limit:
         raise HTTPException(429, f"daily limit reached ({daily_limit} searches per key per day, resets 00:00 UTC)")
     start = time.monotonic()
-    body = search(query)
+    body = search(query, task, snippet_chars)
     store.insert("queries", [{"key_hash": key_hash, "query": query,
                               "latency_ms": int((time.monotonic() - start) * 1000),
                               "scoring_cost_usd": body["scoring_cost_usd"], "result_count": len(body["results"])}])
@@ -171,14 +189,21 @@ def _search_logged(key_hash, daily_limit, query):
 
 
 @app.get("/v1/search")
-async def v1_search(request: Request, q: str = ""):
+async def v1_search(request: Request, q: str = "", task: str = "", snippet_chars: str = ""):
     key_hash, daily_limit = await _run(_key_hash, request)
-    query = q.strip()
+    query, task = q.strip(), task.strip() or None
     if not query:
         raise HTTPException(400, "missing query: use /v1/search?q=...")
     if len(query) > MAX_QUERY_CHARS:
         raise HTTPException(400, f"query too long: at most {MAX_QUERY_CHARS} characters")
-    return await _run(_search_logged, key_hash, daily_limit, query)
+    if task and len(task) > MAX_TASK_CHARS:
+        raise HTTPException(400, f"task too long: at most {MAX_TASK_CHARS} characters")
+    chars = SNIPPET_CHARS
+    if snippet_chars:
+        if not snippet_chars.isdigit() or not 100 <= int(snippet_chars) <= MAX_SNIPPET_CHARS:
+            raise HTTPException(400, f"snippet_chars must be a whole number from 100 to {MAX_SNIPPET_CHARS}")
+        chars = int(snippet_chars)
+    return await _run(_search_logged, key_hash, daily_limit, query, task, chars)
 
 
 # ---- feedback ----------------------------------------------------------------

@@ -160,11 +160,15 @@ def freshness(query, pages):
     return {url: by for url, by in superseded.items() if superseded.get(by["url"], {}).get("url") != url}
 
 
-def score(query, page, history):
-    """Usefulness in [0, 1] of this page for THIS query."""
+def score(query, page, history, task=None):
+    """Usefulness in [0, 1] of this page for THIS query.
+
+    `task` (optional) is what the caller wants answered. The answer check judges the page against it;
+    without one it judges against the query, which is weaker when the query is a topic, not a question.
+    """
     return (1 - W_SUPERSEDED * bool(page.get("superseded_by"))) * (BASELINE
             + W_SIMILARITY * _similarity(query, page)
-            + W_ANSWER_CHECK * _answer_check(query, page)
+            + W_ANSWER_CHECK * _answer_check(task or query, page)
             + W_KEENABLE_RANK * _rank_prior(page)
             + W_PAGE_USAGE * _page_usage(history["pages"].get(page["url"]))
             + W_DOMAIN_USAGE * _usage(history["domains"].get(_domain(page["url"]))))
@@ -175,7 +179,7 @@ def price_cents(usefulness):
     return round(PRICE_FLOOR_CENTS + PRICE_PER_USEFULNESS_CENTS * usefulness, 4)
 
 
-def search(query, history, check_freshness=True):
+def search(query, history, check_freshness=True, task=None):
     """Keenable's top pages for the query, each as a `result`."""
     pages = [{"url": r["url"], "title": r.get("title") or r["url"],
               "snippet": r.get("snippet") or r.get("description") or "", "keenable_rank": rank,
@@ -186,7 +190,7 @@ def search(query, history, check_freshness=True):
         p["superseded_by"] = replaced.get(p["url"])
     with ThreadPoolExecutor(len(pages) or 1) as pool:
         # Each worker runs in a copy of the caller's context, so token metering still sees its calls.
-        scores = list(pool.map(lambda job: job[0].run(score, query, job[1], history),
+        scores = list(pool.map(lambda job: job[0].run(score, query, job[1], history, task),
                                [(contextvars.copy_context(), p) for p in pages]))
     return [{**p, "usefulness": u, "price_cents": price_cents(u), "is_new": p["url"] not in history["pages"]}
             for p, u in zip(pages, scores)]

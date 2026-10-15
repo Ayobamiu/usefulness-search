@@ -314,3 +314,21 @@ Spec: `hosted_api_spec.md`. Supabase project for later steps: `xtract-api`, ref 
 - Found in the live logs: unexpected errors printed a full traceback with the upstream error body. Fixed: one line
   with the exception type and upstream service + status only. Verified live, no traceback.
 - All test rows (local and live) removed from Supabase on 2026-10-14; the api_cache rows were kept.
+
+## Hosted API follow-ups (2026-10-14), from Usman's live test (sample.txt, not committed)
+- Responses were ~45 to 58 KB; 92% was snippets (Keenable "pro" returns most of the page). Usman's viewer cut the
+  58 KB one at 57 KB. The server never truncated. Now: snippets trimmed to 400 chars at a sentence or word, "…";
+  `snippet_chars` 100..2000. Scoring still reads the long text. "Humane AI Pin" response: 58,144 -> 7,148 chars.
+- New optional `task` (<= 500 chars): the answer check judges pages against it instead of the query.
+  Measured on "Discovery loop": the answer check says "yes" for ALL 10 pages on the bare query, including an
+  off-topic SlideShare deck. With task "Who started Discovery Loop and what is it building?" only the
+  circle-packing paper drops (0.527 -> 0.402). So `task` helps a little; the check (gpt-6-luna on the snippet) is
+  lenient. Not tuned.
+- Freshness prompt generalized ("about a company" removed) and evals rerun: F2 FAILED, 1 of 5 controls flagged
+  (c04 ServiceNow: a "Moveworks vs ServiceNow: buy Moveworks standalone?" page flagged as replaced by "Moveworks
+  absorbed into ServiceNow's Otto brand by May 2026", arguably right, but the keep rule is 0 false alarms).
+  Reverted to the company wording; evals back to 15 of 18. Decision for Usman.
+- The server adds nothing to the query (the hackathon's "{company} news" was sales mode only). Usman's first sample
+  says "Humane AI Pin", not "Human ai pin": it was the page example, served from cache.
+- index.html opened as a plain file showed an empty table (template placeholders unfilled; one was inside the
+  script and crashed it). Now the data sits in JSON blocks and the table says it needs server.py. Served page was fine.

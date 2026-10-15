@@ -53,7 +53,7 @@
 <h1>Xtract</h1>
 <p class="lead">Send a query and get each page back with a usefulness score and a price before your agent fetches it, plus a flag when a later page replaces it.</p>
 <p class="meta"><span class="method">GET</span> /v1/search · 50/day · prices simulated</p>
-<p>Query <code>{{EXAMPLE_QUERY}}</code>, run on {{EXAMPLE_DATE}}, no usage history. Rank is the search engine's order. Two of the ten pages are the November 2023 launch. A later result says the Pin was shut down on 28 February 2025.</p>
+<p>Query <code>{{EXAMPLE_QUERY}}</code>, run on {{EXAMPLE_DATE}}, no usage history. Rank is the search engine's order. Three of the ten pages are flagged: two cover the November 2023 launch and one is a 2024 review. A later result says the Pin was shut down on 28 February 2025.</p>
 <div class="table-wrap">
 <table>
   <thead><tr><th>rank</th><th>page</th><th>usefulness</th><th>price <span class="sim">simulated</span></th></tr></thead>
@@ -86,6 +86,9 @@
   <li>After the agent answers, <code>POST /v1/feedback</code> with the URLs it fetched and the URLs it cited.</li>
 </ol>
 <ul>
+  <li><code>q</code> is the search query, up to 300 characters. It is sent to the search engine as typed.</li>
+  <li><code>task</code> (optional, up to 500 characters) is what your agent needs answered, for example <code>task=Is+the+Humane+AI+Pin+still+sold%3F</code>. Scores are sharper with it: each page is checked against the task, not just the query.</li>
+  <li><code>snippet</code> is a short excerpt, 400 characters by default. Ask for up to 2,000 with <code>snippet_chars</code>. The full page is what the price is for.</li>
   <li><code>usefulness</code> runs from 0 to 1. Below 0.45 the row is marked skip, which is where reading stops.</li>
   <li><code>price_cents</code> is the price to read the page, in cents.</li>
   <li><code>superseded_by</code> is null, or the later page and its event.</li>
@@ -107,18 +110,33 @@
 <p class="muted">Search results come from <a href="https://keenable.ai">Keenable</a>. Scores use OpenAI models.</p>
 
 </main>
+<!-- Filled in by server.py. Kept as data, not code, so the page still runs if opened as a plain file. -->
+<script type="application/json" id="free-email-domains">{{FREE_EMAIL_DOMAINS}}</script>
 <script>
   const SKIP_BELOW = 0.45; // agents.STOP_BELOW_USEFULNESS: the buyer stops under this
-  const FREE_EMAIL_DOMAINS = new Set({{FREE_EMAIL_DOMAINS}});
+  function pageData(id, fallback) {
+    try { return JSON.parse(document.getElementById(id).textContent); } catch (e) { return fallback; }
+  }
+  const FREE_EMAIL_DOMAINS = new Set(pageData("free-email-domains", []));
   const origin = window.location.origin;
   for (const id of ["curl-search", "curl-feedback"]) {
     const el = document.getElementById(id);
     el.textContent = el.textContent.replaceAll("ORIGIN", origin);
   }
 
-  const example = JSON.parse(document.getElementById("example-json").textContent);
+  const example = pageData("example-json", null);
   const rows = document.getElementById("example-rows");
-  for (const r of example.results) {
+  if (!example) {
+    // The raw template, opened without server.py: say so instead of showing an empty table.
+    const tr = document.createElement("tr");
+    const td = document.createElement("td");
+    td.colSpan = 4;
+    td.className = "muted";
+    td.textContent = "The example fills in when server.py serves this page (uvicorn server:app). Opened as a plain file, it has no data.";
+    tr.append(td);
+    rows.append(tr);
+  }
+  for (const r of (example ? example.results : [])) {
     const tr = document.createElement("tr");
     if (r.superseded_by) tr.classList.add("superseded");
     const page = document.createElement("td");
