@@ -313,4 +313,4 @@ Spec: `hosted_api_spec.md`. Supabase project for later steps: `xtract-api`, ref 
   URL took 6 s, 10 results, 0 flagged (all pages report the collapse, so nothing is outdated), scoring $0.0048.
 - Found in the live logs: unexpected errors printed a full traceback with the upstream error body. Fixed: one line
   with the exception type and upstream service + status only. Verified live, no traceback.
-- Test rows from this run (1 key, 2 queries, usage for 2 pages) are in Supabase. The earlier local test rows were removed.
+- All test rows (local and live) removed from Supabase on 2026-10-14; the api_cache rows were kept.
