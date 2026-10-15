@@ -5,32 +5,45 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Xtract search API</title>
 <style>
-  :root { --bg: #ffffff; --fg: #1a1a1a; --muted: #5f6368; --line: #e3e3e3; --code: #f5f5f4; --accent: #1f5fbf; --flag: #a33a00; }
+  :root { --bg: #ffffff; --fg: #1a1a1a; --muted: #5f6368; --line: #e3e3e3; --code: #f5f5f4; --accent: #1f5fbf; --flag: #a33a00; --flag-bg: #fff4ec; }
   @media (prefers-color-scheme: dark) {
-    :root { --bg: #141414; --fg: #ececec; --muted: #a0a0a0; --line: #2e2e2e; --code: #1f1f1f; --accent: #7fb0ff; --flag: #ff9a5c; }
+    :root { --bg: #141414; --fg: #ececec; --muted: #a0a0a0; --line: #2e2e2e; --code: #1f1f1f; --accent: #7fb0ff; --flag: #ff9a5c; --flag-bg: #2a1c14; }
   }
   * { box-sizing: border-box; }
   body { margin: 0; background: var(--bg); color: var(--fg); font: 16px/1.55 system-ui, -apple-system, Segoe UI, sans-serif; }
   main { max-width: 760px; margin: 0 auto; padding: 32px 16px 64px; }
-  h1 { font-size: 1.9rem; margin: 0 0 12px; }
+  h1 { font: 600 1.9rem/1.2 ui-monospace, SFMono-Regular, Menlo, monospace; margin: 0 0 12px; }
   h2 { font-size: 1.2rem; margin: 40px 0 8px; }
-  p { margin: 8px 0; }
+  p, ul, ol { margin: 8px 0; }
+  ol, ul { padding-left: 1.2em; }
+  li { margin: 4px 0; }
   .lead { font-size: 1.1rem; }
+  .meta { font: 0.82rem/1.4 ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--muted); margin: 0 0 16px; }
   .muted { color: var(--muted); font-size: 0.92rem; }
-  .sim { color: var(--muted); font-size: 0.85em; white-space: nowrap; }
-  pre, code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.85rem; }
-  pre { background: var(--code); border: 1px solid var(--line); border-radius: 8px; padding: 12px; overflow-x: auto; }
-  form { display: flex; gap: 8px; flex-wrap: wrap; margin: 12px 0; }
+  .method { color: var(--accent); font-weight: 650; }
+  .sim { color: var(--muted); font-size: 0.85em; font-weight: 400; }
+  pre, code, .cmd-label, th, td.num { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+  pre, code { font-size: 0.85rem; }
+  pre { background: var(--code); border: 1px solid var(--line); border-radius: 8px; padding: 12px; overflow-x: auto; margin: 0; }
+  .cmd { margin-top: 14px; }
+  .cmd-label { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; font-size: 0.8rem; color: var(--muted); margin: 0 0 6px; }
+  button.copy { background: transparent; color: var(--muted); border: 1px solid var(--line); border-radius: 6px; padding: 2px 8px; font: 500 0.75rem/1.4 ui-monospace, SFMono-Regular, Menlo, monospace; cursor: pointer; }
+  button.copy:hover { color: var(--fg); }
+  .cta { margin-top: 16px; }
+  form { display: flex; gap: 8px; flex-wrap: wrap; margin: 0; }
   input { flex: 1 1 220px; padding: 10px 12px; font: inherit; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--fg); }
-  button { padding: 10px 16px; font: inherit; border: 0; border-radius: 8px; background: var(--accent); color: var(--bg); cursor: pointer; }
-  #key-out { word-break: break-all; }
+  button { padding: 10px 16px; font: 600 1rem/1.2 system-ui, -apple-system, Segoe UI, sans-serif; border: 0; border-radius: 8px; background: var(--accent); color: var(--bg); cursor: pointer; }
+  #key-out { word-break: break-all; margin: 0 0 12px; }
   .table-wrap { overflow-x: auto; }
   table { border-collapse: collapse; width: 100%; font-size: 0.9rem; }
-  th, td { text-align: left; padding: 8px 6px; border-bottom: 1px solid var(--line); vertical-align: top; }
-  th { font-weight: 600; }
-  th .sim { display: block; white-space: normal; font-weight: 400; }
-  td.num { white-space: nowrap; font-variant-numeric: tabular-nums; }
-  .flag { color: var(--flag); font-size: 0.85rem; }
+  th, td { text-align: left; padding: 6px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { font-weight: 500; font-size: 0.75rem; color: var(--muted); }
+  th .sim { display: block; white-space: normal; }
+  td.num { font-variant-numeric: tabular-nums; }
+  td.num .n { white-space: nowrap; }
+  tr.superseded td { background: var(--flag-bg); }
+  .event { color: var(--flag); font-weight: 600; margin-top: 4px; }
+  .skipmark { color: var(--flag); font-size: 0.8rem; font-weight: 600; }
   a { color: var(--accent); }
 </style>
 </head>
@@ -38,54 +51,65 @@
 <main>
 
 <h1>Xtract</h1>
-<p class="lead">Search for AI agents that tells the agent how useful each page is, and what it costs, before the agent reads it.
-It also flags pages that later news has replaced, so the agent does not repeat an old story as current.</p>
-
-<h2>Get a key</h2>
-<p>Free, 50 searches a day. The key is shown once; we store only a hash of it.</p>
-<form id="key-form">
-  <input type="email" id="email" placeholder="you@example.com" required autocomplete="email">
-  <button type="submit">Get a key</button>
-</form>
-<pre id="key-out" hidden></pre>
-
-<h2>Search</h2>
-<pre id="curl-search">curl -s "ORIGIN/v1/search?q=Humane+AI+Pin" \
-  -H "Authorization: Bearer YOUR_KEY"</pre>
-<p>Each result has <code>url</code>, <code>title</code>, <code>snippet</code>, <code>keenable_rank</code>,
-<code>usefulness</code> (0 to 1), <code>price_cents</code> <span class="sim">(prices are simulated for now)</span>,
-<code>is_new</code> (no usage history yet) and <code>superseded_by</code> (null, or the later page and event).
-<code>scoring_cost_usd</code> is what our own model calls for scoring this search cost at list prices (reported the same when we answer from cache).</p>
-
-<h2>One real response</h2>
-<p>Query <code>{{EXAMPLE_QUERY}}</code>, run on {{EXAMPLE_DATE}} with no usage history. Not edited.</p>
+<p class="lead">Send a query and get each page back with a usefulness score and a price before your agent fetches it, plus a flag when a later page replaces it.</p>
+<p class="meta"><span class="method">GET</span> /v1/search · 50/day · prices simulated</p>
+<p>Query <code>{{EXAMPLE_QUERY}}</code>, run on {{EXAMPLE_DATE}}, no usage history. Rank is the search engine's order. Two of the ten pages are the November 2023 launch. A later result says the Pin was shut down on 28 February 2025.</p>
 <div class="table-wrap">
 <table>
-  <thead><tr><th>#</th><th>page</th><th>usefulness</th><th>price <span class="sim">(simulated for now)</span></th></tr></thead>
+  <thead><tr><th>rank</th><th>page</th><th>usefulness</th><th>price <span class="sim">simulated</span></th></tr></thead>
   <tbody id="example-rows"></tbody>
 </table>
+</div>
+
+<div class="cta">
+<pre id="key-out" hidden></pre>
+<form id="key-form">
+  <input type="email" id="email" placeholder="you@company.com" required autocomplete="email" aria-label="Company email">
+  <button type="submit">Get a key</button>
+</form>
+<p class="muted">Company email. Shown once. We store only a hash of it.</p>
+<div class="cmd">
+  <div class="cmd-label"><span><span class="method">GET</span> /v1/search</span><button type="button" class="copy" data-copy="curl-search">Copy</button></div>
+  <pre id="curl-search">curl -s "ORIGIN/v1/search?q=Humane+AI+Pin" \
+  -H "Authorization: Bearer YOUR_KEY"</pre>
+</div>
 </div>
 <details>
   <summary class="muted">The raw JSON</summary>
   <pre id="example-json">{{EXAMPLE_JSON}}</pre>
 </details>
 
+<h2>Using the response</h2>
+<ol>
+  <li>Sort by usefulness per cent: usefulness divided by <code>price_cents</code>.</li>
+  <li>A superseded page is the old story. <code>superseded_by.event</code> is the later fact.</li>
+  <li>After the agent answers, <code>POST /v1/feedback</code> with the URLs it fetched and the URLs it cited.</li>
+</ol>
+<ul>
+  <li><code>usefulness</code> runs from 0 to 1. Below 0.45 the row is marked skip, which is where reading stops.</li>
+  <li><code>price_cents</code> is the price to read the page, in cents.</li>
+  <li><code>superseded_by</code> is null, or the later page and its event.</li>
+  <li><code>scoring_cost_usd</code> is the list-price cost of scoring this search, including when the answer is cached.</li>
+</ul>
+
 <h2>Tell us what you cited</h2>
-<p>After your agent answers, report which pages it read and which it cited:</p>
-<pre id="curl-feedback">curl -s -X POST "ORIGIN/v1/feedback" \
+<div class="cmd">
+  <div class="cmd-label"><span><span class="method">POST</span> /v1/feedback</span><button type="button" class="copy" data-copy="curl-feedback">Copy</button></div>
+  <pre id="curl-feedback">curl -s -X POST "ORIGIN/v1/feedback" \
   -H "Authorization: Bearer YOUR_KEY" -H "Content-Type: application/json" \
   -d '{"query": "Humane AI Pin",
-       "fetched": ["https://example.com/a", "https://example.com/b"],
-       "cited":   ["https://example.com/a"]}'</pre>
-<p>This is how the scores learn. A page that gets read and cited scores higher for everyone next time;
-a page that gets read and ignored scores lower, and so does its price <span class="sim">(prices are simulated for now)</span>.
-The response shows how much each page's score moved.</p>
+       "fetched": ["https://mashable.com/article/humane-ai-pin-discontinued-killed",
+                   "https://wikipedia.org/wiki/Humane_AI_Pin"],
+       "cited": ["https://mashable.com/article/humane-ai-pin-discontinued-killed"]}'</pre>
+</div>
+<p>A follow-up search after this report moved Mashable, fetched and cited, from 0.73 to 0.90. Wikipedia, fetched and left out of the citations, moved from 0.71 to 0.55.</p>
 
-<p class="muted">Search results come from <a href="https://keenable.ai">Keenable</a>. Scores use OpenAI models.
-Prices are simulated for now: nothing is charged.</p>
+<p class="muted">Search results come from <a href="https://keenable.ai">Keenable</a>. Scores use OpenAI models.</p>
 
 </main>
 <script>
+  const SKIP_BELOW = 0.45; // agents.STOP_BELOW_USEFULNESS: the buyer stops under this
+  const FREE_EMAIL_DOMAINS = new Set({{FREE_EMAIL_DOMAINS}});
   const origin = window.location.origin;
   for (const id of ["curl-search", "curl-feedback"]) {
     const el = document.getElementById(id);
@@ -96,38 +120,98 @@ Prices are simulated for now: nothing is charged.</p>
   const rows = document.getElementById("example-rows");
   for (const r of example.results) {
     const tr = document.createElement("tr");
+    if (r.superseded_by) tr.classList.add("superseded");
     const page = document.createElement("td");
     const link = document.createElement("a");
     link.href = r.url; link.textContent = r.title; link.rel = "nofollow noopener";
     page.append(link);
     if (r.superseded_by) {
       const note = document.createElement("div");
-      note.className = "flag";
-      note.textContent = "Superseded: " + r.superseded_by.event;
+      note.className = "event";
+      note.textContent = r.superseded_by.event;
       page.append(note);
     }
-    const cells = [String(r.keenable_rank), null, r.usefulness.toFixed(2), r.price_cents.toFixed(2) + "c"];
-    cells.forEach((text, i) => {
+    const cells = [String(r.keenable_rank), null, r.usefulness, r.price_cents];
+    cells.forEach((value, i) => {
       if (i === 1) { tr.append(page); return; }
       const td = document.createElement("td");
-      td.className = "num"; td.textContent = text; tr.append(td);
+      td.className = "num";
+      const n = document.createElement("div");
+      n.className = "n";
+      if (i === 2) n.textContent = value.toFixed(2);
+      else if (i === 3) n.textContent = value.toFixed(2) + "\u00a2";
+      else n.textContent = value;
+      td.append(n);
+      if (i === 2 && value < SKIP_BELOW) {
+        const mark = document.createElement("div");
+        mark.className = "skipmark";
+        mark.textContent = "skip";
+        td.append(mark);
+      }
+      tr.append(td);
     });
     rows.append(tr);
+  }
+
+  function isFreeEmail(email) {
+    const domain = email.trim().toLowerCase().split("@").pop().replace(/\.$/, "");
+    for (const blocked of FREE_EMAIL_DOMAINS) {
+      if (domain === blocked || domain.endsWith("." + blocked)) return true;
+    }
+    return false;
+  }
+  function copySync(text) {
+    const area = document.createElement("textarea");
+    area.value = text;
+    area.setAttribute("readonly", "");
+    area.style.position = "fixed";
+    area.style.top = "0";
+    area.style.left = "0";
+    area.style.opacity = "0";
+    document.body.append(area);
+    area.focus();
+    area.select();
+    area.setSelectionRange(0, text.length);
+    let ok = false;
+    try { ok = document.execCommand("copy"); } catch (e) {}
+    area.remove();
+    return ok;
+  }
+  for (const btn of document.querySelectorAll("button.copy")) {
+    btn.addEventListener("click", async () => {
+      const label = btn.textContent;
+      const text = document.getElementById(btn.dataset.copy).textContent;
+      let ok = copySync(text);
+      if (!ok && navigator.clipboard) {
+        try { await navigator.clipboard.writeText(text); ok = true; } catch (e) {}
+      }
+      btn.textContent = ok ? "Copied" : "Copy failed";
+      setTimeout(() => { btn.textContent = label; }, 1500);
+    });
   }
 
   document.getElementById("key-form").addEventListener("submit", async (event) => {
     event.preventDefault();
     const out = document.getElementById("key-out");
-    out.hidden = false; out.textContent = "Creating a key...";
+    const email = document.getElementById("email").value.trim();
+    out.hidden = false;
+    if (isFreeEmail(email)) {
+      out.textContent = "Could not create a key: a company email is required.";
+      out.scrollIntoView({block: "nearest"});
+      return;
+    }
+    out.textContent = "Creating a key...";
+    out.scrollIntoView({block: "nearest"});
     try {
       const response = await fetch("/v1/keys", {
         method: "POST", headers: {"Content-Type": "application/json"},
-        body: JSON.stringify({email: document.getElementById("email").value})
+        body: JSON.stringify({email})
       });
       const body = await response.json();
       out.textContent = response.ok
         ? "Your key (shown once, copy it now):\n" + body.api_key
         : "Could not create a key: " + body.error;
+      out.scrollIntoView({block: "nearest"});
       if (response.ok) {
         for (const id of ["curl-search", "curl-feedback"]) {
           const el = document.getElementById(id);
@@ -136,6 +220,7 @@ Prices are simulated for now: nothing is charged.</p>
       }
     } catch (e) {
       out.textContent = "Could not reach the server. Please try again.";
+      out.scrollIntoView({block: "nearest"});
     }
   });
 </script>

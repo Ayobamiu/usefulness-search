@@ -27,6 +27,37 @@ MAX_QUERY_CHARS = 300
 MAX_FEEDBACK_URLS = 50
 KEYS_PER_IP_PER_DAY = 3
 EMAIL = re.compile(r"^[^@\s]{1,64}@[^@\s]{1,190}\.[^@\s]{2,}$")
+# Consumer webmail and disposable inboxes. A company address is any other domain.
+# Checked before a key is issued, so a rejected address does not use the daily key allowance.
+FREE_EMAIL_DOMAINS = frozenset({
+    "gmail.com", "googlemail.com",
+    "yahoo.com", "yahoo.co.uk", "yahoo.fr", "yahoo.de", "yahoo.ca", "yahoo.com.au", "yahoo.co.in", "yahoo.co.jp",
+    "ymail.com", "rocketmail.com",
+    "hotmail.com", "hotmail.co.uk", "hotmail.fr", "outlook.com", "outlook.co.uk", "outlook.fr",
+    "live.com", "live.co.uk", "msn.com",
+    "icloud.com", "me.com", "mac.com",
+    "aol.com", "aim.com",
+    "proton.me", "protonmail.com", "protonmail.ch", "pm.me",
+    "gmx.com", "gmx.net", "gmx.de", "mail.com", "email.com",
+    "yandex.com", "yandex.ru", "inbox.ru",
+    "tutanota.com", "tuta.com", "hey.com", "fastmail.com", "duck.com",
+    "qq.com", "163.com", "126.com", "naver.com", "daum.net", "hanmail.net",
+    "web.de", "freenet.de", "orange.fr", "libero.it", "seznam.cz", "rediffmail.com",
+    "example.com", "example.org", "example.net",
+    "mailinator.com", "mailinator.net",
+    "guerrillamail.com", "guerrillamail.info", "guerrillamail.biz", "guerrillamail.de",
+    "guerrillamail.net", "guerrillamail.org", "guerrillamailblock.com",
+    "grr.la", "sharklasers.com", "pokemail.net", "spam4.me",
+    "yopmail.com", "yopmail.fr", "yopmail.net",
+    "10minutemail.com", "10minutemail.net",
+    "tempmail.com", "temp-mail.org", "tempmailo.com", "tempinbox.com", "throwawaymail.com", "tmpmail.org",
+    "trashmail.com", "trashmail.de", "trash-mail.com",
+    "getnada.com", "maildrop.cc", "dispostable.com", "mailnesia.com", "mohmal.com",
+    "emailondeck.com", "fakemail.net", "mailsac.com", "discard.email", "moakt.com",
+    "emailfake.com", "generator.email", "fakemailgenerator.com", "dropmail.me",
+    "burnermail.io", "spamgourmet.com", "mailnull.com", "inboxkitten.com",
+    "getairmail.com", "mytemp.email", "mintemail.com",
+})
 
 log = logging.getLogger("xtract")
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
@@ -201,6 +232,11 @@ def _client_ip(request):
     return forwarded.split(",")[0].strip() if forwarded else (request.client.host if request.client else "")
 
 
+def company_email(email):
+    domain = email.rsplit("@", 1)[-1].lower().rstrip(".")
+    return not any(domain == blocked or domain.endswith("." + blocked) for blocked in FREE_EMAIL_DOMAINS)
+
+
 def _new_key(email, ip):
     ip_hash = _sha256("xtract-ip:" + ip)
     if store.count("key_requests", {"ip_hash": f"eq.{ip_hash}", "created_at": f"gte.{_today_utc()}"}) >= KEYS_PER_IP_PER_DAY:
@@ -217,11 +253,13 @@ async def v1_keys(request: Request):
     try:
         body = await request.json()
     except ValueError:
-        raise HTTPException(400, "body must be JSON: {\"email\": \"you@example.com\"}") from None
+        raise HTTPException(400, "body must be JSON: {\"email\": \"you@company.com\"}") from None
     email = (body.get("email") if isinstance(body, dict) else None) or ""
     email = email.strip() if isinstance(email, str) else ""
     if not EMAIL.match(email):
         raise HTTPException(400, "a valid email is required")
+    if not company_email(email):
+        raise HTTPException(400, "a company email is required")
     return await _run(_new_key, email, _client_ip(request))
 
 
@@ -232,7 +270,8 @@ def _page():
     return ((ROOT / "index.html").read_text()
             .replace("{{EXAMPLE_QUERY}}", html.escape(example["response"]["query"]))
             .replace("{{EXAMPLE_DATE}}", html.escape(example["run_on"]))
-            .replace("{{EXAMPLE_JSON}}", html.escape(json.dumps(example["response"], indent=2))))
+            .replace("{{EXAMPLE_JSON}}", html.escape(json.dumps(example["response"], indent=2)))
+            .replace("{{FREE_EMAIL_DOMAINS}}", json.dumps(sorted(FREE_EMAIL_DOMAINS))))
 
 
 @app.get("/", response_class=HTMLResponse)
