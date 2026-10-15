@@ -309,6 +309,8 @@ Spec: `hosted_api_spec.md`. Supabase project for later steps: `xtract-api`, ref 
   and bad keys get clear errors. Not a separate machine: same laptop, clean env, public URL.
 - A FRESH query (not in the Supabase cache) failed: OpenAI returned 429 credit_balance_exhausted. Usman funded the
   account; the key still reported exhausted a few minutes later. Recheck before sharing the link.
+- Rechecked after billing was fixed (same key, Railway already had it): fresh query "Builder.ai news" on the live
+  URL took 6 s, 10 results, 0 flagged (all pages report the collapse, so nothing is outdated), scoring $0.0048.
 - Found in the live logs: unexpected errors printed a full traceback with the upstream error body. Fixed: one line
   with the exception type and upstream service + status only. Verified live, no traceback.
 - Test rows from this run (1 key, 2 queries, usage for 2 pages) are in Supabase. The earlier local test rows were removed.
